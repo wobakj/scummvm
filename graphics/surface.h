@@ -117,6 +117,7 @@ public:
 	 * @return Pointer to the pixel.
 	 */
 	inline const void *getBasePtr(int x, int y) const {
+		assert(pixels && x >= 0 && x < w && y >= 0 && y < h);
 		return (const byte *)(pixels) + y * pitch + x * format.bytesPerPixel;
 	}
 
@@ -128,6 +129,7 @@ public:
 	 * @return Pointer to the pixel.
 	 */
 	inline void *getBasePtr(int x, int y) {
+		assert(pixels && x >= 0 && x < w && y >= 0 && y < h);
 		return static_cast<byte *>(pixels) + y * pitch + x * format.bytesPerPixel;
 	}
 
