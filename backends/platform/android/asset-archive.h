@@ -27,7 +27,6 @@
 
 #include "common/str.h"
 #include "common/stream.h"
-#include "common/util.h"
 #include "common/archive.h"
 
 #include <jni.h>

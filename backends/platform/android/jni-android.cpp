@@ -48,8 +48,8 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	_system(system),
 	_activity(activity),
 	_instance(_activity->clazz),
+	_assets(nullptr),
 	_jobj_audio_track(nullptr),
-	_asset_archive(nullptr),
 	_MID_getDPI(nullptr),
 	_MID_displayMessageOnOSD(nullptr),
 	_MID_openUrl(nullptr),
@@ -60,7 +60,6 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	_MID_setWindowCaption(nullptr),
 	_MID_showVirtualKeyboard(nullptr),
 	_MID_showKeyboardControl(nullptr),
-	_MID_getSysArchives(nullptr),
 	_MID_convertEncoding(nullptr),
 	_MID_getAllStorageLocations(nullptr),
 	_MID_finish(nullptr),
@@ -72,9 +71,6 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	_MID_AudioTrack_write(nullptr)
  {
 	// should be called from main thread
-
-	// _asset_archive = new AndroidAssetArchive(asset_manager);
-	// assert(_asset_archive);
 
 	// initial value of zero!
 	sem_init(&_pause_sem, 0, 0);
@@ -101,11 +97,11 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	FIND_METHOD(, isConnectionLimited, "()Z");
 	FIND_METHOD(, showVirtualKeyboard, "(Z)V");
 	FIND_METHOD(, showKeyboardControl, "(Z)V");
-	FIND_METHOD(, getSysArchives, "()[Ljava/lang/String;");
 	FIND_METHOD(, getAllStorageLocations, "()[Ljava/lang/String;");
 	FIND_METHOD(, convertEncoding, "(Ljava/lang/String;Ljava/lang/String;[B)[B");
 	FIND_METHOD(, finish, "()V");
 	FIND_METHOD(, stringFromKeyCode, "(JJIIIIIIII)Ljava/lang/String;");
+	FIND_METHOD(, getAssets, "()Landroid/content/res/AssetManager;");
 
 	// _jobj_audio_track = env->NewGlobalRef(at);
 
@@ -122,6 +118,10 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 
 JNI::~JNI() {
 	// should be called from main thread
+	if (_assets != nullptr)	{
+		JNIEnv *env = _activity->env;
+		env->DeleteGlobalRef(_assets);
+	}
 }
 
 JNIEnv *JNI::getEnv() {
@@ -347,50 +347,6 @@ void JNI::showKeyboardControl(bool enable) {
 	}
 }
 
-// The following adds assets folder to search set.
-// However searching and retrieving from "assets" on Android this is slow
-// so we also make sure to add the "path" directory, with a higher priority
-// This is done via a call to ScummVMActivity's (java) getSysArchives
-void JNI::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
-	JNIEnv *env = getEnv();
-
-	// get any additional specified paths (from ScummVMActivity code)
-	// Insert them with "priority" priority.
-	jobjectArray array =
-		(jobjectArray)env->CallObjectMethod(_instance, _MID_getSysArchives);
-
-	if (env->ExceptionCheck()) {
-		LOGE("Error finding system archive path");
-
-		env->ExceptionDescribe();
-		env->ExceptionClear();
-
-		return;
-	}
-
-	jsize size = env->GetArrayLength(array);
-	for (jsize i = 0; i < size; ++i) {
-		jstring path_obj = (jstring)env->GetObjectArrayElement(array, i);
-		const char *path = env->GetStringUTFChars(path_obj, 0);
-
-		if (path != 0) {
-			s.addDirectory(path, path, priority);
-			env->ReleaseStringUTFChars(path_obj, path);
-		}
-
-		env->DeleteLocalRef(path_obj);
-	}
-
-	// add the internal asset (android's structure) with a lower priority,
-	// since:
-	// 1. It is very slow in accessing large files (eg our growing fonts.dat)
-	// 2. we extract the asset contents anyway to the internal app path
-	// 3. we pass the internal app path in the process above (via _MID_getSysArchives)
-	// However, we keep android APK's "assets" as a fall back, in case something went wrong with the extraction process
-	//          and since we had the code anyway
-	s.add("ASSET", _asset_archive, priority - 1, false);
-}
-
 char *JNI::convertEncoding(const char *to, const char *from, const char *string, size_t length) {
 	JNIEnv *env = getEnv();
 
@@ -587,4 +543,13 @@ Common::String JNI::stringFromKeyCode(AInputEvent* event) {
 	env->ReleaseStringUTFChars(jKeyCodeString, keyCodeString);
 
 	return strReturn;
+}
+
+jobject JNI::getAssets() {
+	if (_assets == nullptr) {
+		JNIEnv *env = getEnv();
+		jobject assets = env->CallObjectMethod(_instance, _MID_getAssets);
+		_assets = env->NewGlobalRef(assets);
+	}
+	return _assets;
 }

@@ -2,6 +2,7 @@ package org.scummvm.scummvm;
 
 import android.app.NativeActivity;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.inputmethod.InputMethodManager;
@@ -11,6 +12,10 @@ import android.view.View;
 import java.io.File;
 
 public class ScummVMNativeActivity extends NativeActivity {
+    private static final int RQ_READ_EXT_STORAGE = 1;
+    private static final int RQ_SELECT_DIRECTORY = 2;
+    private static final String LOG_TAG = "ScummVMJava";
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,5 +75,10 @@ public class ScummVMNativeActivity extends NativeActivity {
         }
 
         return strReturn;
+    }
+
+    public void selectDirectory() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        startActivityForResult(intent, RQ_SELECT_DIRECTORY);
     }
 }

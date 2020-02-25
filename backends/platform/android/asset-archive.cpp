@@ -23,11 +23,9 @@
 #include "backends/platform/android/asset-archive.h"
 
 #include "backends/platform/android/jni-android.h"
+#include "backends/platform/android/system.h"
 
-#include "common/str.h"
-#include "common/stream.h"
 #include "common/util.h"
-#include "common/archive.h"
 #include "common/debug.h"
 #include "common/textconsole.h"
 
@@ -104,9 +102,10 @@ bool AssetInputStream::seek(int32 offset, int whence) {
 
 AndroidAssetArchive::AndroidAssetArchive(OSystem_Android *system)
 	: _system(system)
-	, _am(nullptr)
 	, _hasCached(false)
 {
+	JNIEnv *env = _system->_jni->getEnv();
+	_am = AAssetManager_fromJava(env, _system->_jni->getAssets());
 }
 
 AndroidAssetArchive::~AndroidAssetArchive() {

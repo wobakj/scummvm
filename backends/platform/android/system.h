@@ -40,6 +40,7 @@
 
 class AndroidGraphicsManager;
 class AndroidEventSource;
+class AndroidAssetArchive;
 class JNI;
 
 class OSystem_Android : public ModularMutexBackend, public ModularGraphicsBackend {
@@ -49,8 +50,9 @@ public:
 	AndroidEventSource *_eventSource;
 
 private:
-	ANativeWindow *_waitingNativeWindow;
-	AInputQueue *_waitingInputQueue;
+	AndroidAssetArchive *_assetArchive;
+	ANativeWindow* _waitingNativeWindow;
+	AInputQueue* _waitingInputQueue;
 
 	// passed from the dark side
 	int _audio_sample_rate;

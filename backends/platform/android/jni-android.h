@@ -62,7 +62,6 @@ public:
 	bool isConnectionLimited();
 	void showVirtualKeyboard(bool enable);
 	void showKeyboardControl(bool enable);
-	void addSysArchivesToSearchSet(Common::SearchSet &s, int priority);
 	char *convertEncoding(const char *to, const char *from, const char *string, size_t length);
 
 	void setAudioPause();
@@ -75,6 +74,7 @@ public:
 	Common::Array<Common::String> getAllStorageLocations();
 	void finish();
 	Common::String stringFromKeyCode(AInputEvent* pInputEvent);
+	jobject getAssets();
 
 private:
 	OSystem_Android *_system;
@@ -82,9 +82,9 @@ private:
 
 	// back pointer to (java) peer instance
 	jobject _instance;
-	jobject _jobj_audio_track;
+	jobject _assets;
 
-	Common::Archive *_asset_archive;
+	jobject _jobj_audio_track;
 
 	jmethodID _MID_getDPI;
 	jmethodID _MID_displayMessageOnOSD;
@@ -96,11 +96,11 @@ private:
 	jmethodID _MID_setWindowCaption;
 	jmethodID _MID_showVirtualKeyboard;
 	jmethodID _MID_showKeyboardControl;
-	jmethodID _MID_getSysArchives;
 	jmethodID _MID_convertEncoding;
 	jmethodID _MID_getAllStorageLocations;
 	jmethodID _MID_finish;
 	jmethodID _MID_stringFromKeyCode;
+	jmethodID _MID_getAssets;
 
 	jmethodID _MID_AudioTrack_flush;
 	jmethodID _MID_AudioTrack_pause;

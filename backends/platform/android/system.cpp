@@ -22,6 +22,7 @@
 
 #include "backends/platform/android/system.h"
 
+#include "backends/platform/android/asset-archive.h"
 #include "backends/platform/android/events.h"
 #include "backends/platform/android/graphics.h"
 #include "backends/platform/android/jni-android.h"
@@ -75,6 +76,7 @@ OSystem_Android::OSystem_Android(ANativeActivity* nativeActivity, int audio_samp
 	_jni(new JNI(this, nativeActivity)),
 	_nativeActivity(nativeActivity),
 	_eventSource(nullptr),
+	_assetArchive(nullptr),
 	_waitingNativeWindow(nullptr),
 	_waitingInputQueue(nullptr),
 	_audio_sample_rate(audio_sample_rate),
@@ -145,6 +147,12 @@ OSystem_Android::~OSystem_Android() {
 
 	delete _savefileManager;
 	_savefileManager = 0;
+
+	delete _assetArchive;
+	_assetArchive = nullptr;
+
+	delete _jni;
+	_jni = nullptr;
 }
 
 void *OSystem_Android::mainThreadFunc(void *arg) {
@@ -617,9 +625,13 @@ void OSystem_Android::getTimeAndDate(TimeDate &td) const {
 }
 
 void OSystem_Android::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
-	ENTER("");
+	ENTER();
 
-	_jni->addSysArchivesToSearchSet(s, priority);
+	if (_assetArchive == nullptr) {
+		_assetArchive = new AndroidAssetArchive(this);
+	}
+
+	s.add("ASSET", _assetArchive, priority, false);
 }
 
 void OSystem_Android::logMessage(LogMessageType::Type type, const char *message) {
