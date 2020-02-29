@@ -3,24 +3,40 @@ package org.scummvm.scummvm;
 import android.app.NativeActivity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.Manifest;
+import android.net.Uri;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.Toast;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ScummVMNativeActivity extends NativeActivity {
     private static final int RQ_READ_EXT_STORAGE = 1;
-    private static final int RQ_SELECT_DIRECTORY = 2;
+
     private static final String LOG_TAG = "ScummVMJava";
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        File[] files = this.getExternalFilesDirs(null);
+        // Permissions need to requested explicitly from version 23
+        // On version 29 we can't access external storage outside of app directory and accessing app directory that doesn't require the permission
+        if (Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT < 29) {
+            if(checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, RQ_READ_EXT_STORAGE);
+            }
+        }
     }
 
     @Override
@@ -39,6 +55,32 @@ public class ScummVMNativeActivity extends NativeActivity {
         );
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case RQ_READ_EXT_STORAGE:
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted
+                    Log.i(LOG_TAG, "Read External Storage permission was granted at Runtime");
+                } else {
+                    // permission denied! We won't be able to make use of functionality depending on this permission.
+                    Toast.makeText(this, "Until permission is granted, some storage locations may be inaccessible!", Toast.LENGTH_SHORT)
+                        .show();
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    public native void pushEvent(int type, int customType);
+
     protected void getDPI(float[] values) {
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -46,8 +88,6 @@ public class ScummVMNativeActivity extends NativeActivity {
         values[0] = metrics.xdpi;
         values[1] = metrics.ydpi;
     }
-
-    public native void pushEvent(int type, int customType);
 
     public void showVirtualKeyboard(boolean enable) {
         InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -77,8 +117,35 @@ public class ScummVMNativeActivity extends NativeActivity {
         return strReturn;
     }
 
-    public void selectDirectory() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        startActivityForResult(intent, RQ_SELECT_DIRECTORY);
+    public String[] getAllStorageLocations() {
+        List<String> locations = new ArrayList<>();
+
+        if (Build.VERSION.SDK_INT < 19) {
+            File externalFileDir = getExternalFilesDir(null);
+            locations.add(externalFileDir.getAbsolutePath());
+        } else {
+            File[] externalFileDirs = getExternalFilesDirs(null);
+            for (File f : externalFileDirs) {
+                locations.add(f.getAbsolutePath());
+            }
+        }
+
+        if (Build.VERSION.SDK_INT < 29) {
+            File externalStorageDir = Environment.getExternalStorageDirectory();
+            locations.add(externalStorageDir.getAbsolutePath());
+        }
+
+        return locations.toArray(new String[0]);
+
+        // if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        // ) {
+        //     requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_READ_EXT_STORAGE);
+        // } else {
+        //     return _externalStorage.getAllStorageLocations().toArray(new String[0]);
+        // }
+        // return new String[0]; // an array of zero length
+
+
     }
+
 }

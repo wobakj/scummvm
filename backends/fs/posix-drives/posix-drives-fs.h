@@ -33,7 +33,7 @@ class StdioStream;
  */
 class DrivePOSIXFilesystemNode : public POSIXFilesystemNode {
 protected:
-	AbstractFSNode *makeNode(const Common::String &path) const override {
+	POSIXFilesystemNode *makeNode(const Common::String &path) const override {
 		return new DrivePOSIXFilesystemNode(path, _config);
 	}
 

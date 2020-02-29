@@ -31,7 +31,6 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_exit		//Needed for IRIX's unistd.h
 #define FORBIDDEN_SYMBOL_EXCEPTION_random
 #define FORBIDDEN_SYMBOL_EXCEPTION_srandom
-#define FORBIDDEN_SYMBOL_EXCEPTION_printf	// Needed for Android's logging
 
 #include "backends/fs/posix/posix-fs.h"
 #include "backends/fs/posix/posix-iostream.h"
@@ -54,10 +53,6 @@
 #ifdef __OS2__
 #define INCL_DOS
 #include <os2.h>
-#endif
-
-#if defined(__ANDROID__) && !defined(ANDROIDSDL)
-#include "backends/platform/android/jni-android.h"
 #endif
 
 bool POSIXFilesystemNode::exists() const {
@@ -191,11 +186,12 @@ bool POSIXFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, boo
 		}
 
 		// Start with a clone of this node, with the correct path set
-		POSIXFilesystemNode entry(*this);
-		entry._displayName = dp->d_name;
+		Common::String newPath = _path;
 		if (_path.lastChar() != '/')
-			entry._path += '/';
-		entry._path += entry._displayName;
+			newPath += '/';
+		newPath += dp->d_name;
+		POSIXFilesystemNode *entry = makeNode(newPath);
+
 
 #if defined(SYSTEM_NOT_SUPPORTING_D_TYPE)
 		/* TODO: d_type is not part of POSIX, so it might not be supported
@@ -205,36 +201,40 @@ bool POSIXFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, boo
 		 * The d_type method is used to avoid costly recurrent stat() calls in big
 		 * directories.
 		 */
-		entry.setFlags();
+		entry->setFlags();
 #else
 		if (dp->d_type == DT_UNKNOWN) {
 			// Fall back to stat()
-			entry.setFlags();
+			entry->setFlags();
 		} else {
-			entry._isValid = (dp->d_type == DT_DIR) || (dp->d_type == DT_REG) || (dp->d_type == DT_LNK);
+			entry->_isValid = (dp->d_type == DT_DIR) || (dp->d_type == DT_REG) || (dp->d_type == DT_LNK);
 			if (dp->d_type == DT_LNK) {
 				struct stat st;
-				if (stat(entry._path.c_str(), &st) == 0)
-					entry._isDirectory = S_ISDIR(st.st_mode);
+				if (stat(entry->_path.c_str(), &st) == 0)
+					entry->_isDirectory = S_ISDIR(st.st_mode);
 				else
-					entry._isDirectory = false;
+					entry->_isDirectory = false;
 			} else {
-				entry._isDirectory = (dp->d_type == DT_DIR);
+				entry->_isDirectory = (dp->d_type == DT_DIR);
 			}
 		}
 #endif
 
 		// Skip files that are invalid for some reason (e.g. because we couldn't
 		// properly stat them).
-		if (!entry._isValid)
+		if (!entry->_isValid){
+			delete entry;
 			continue;
+		}
 
 		// Honor the chosen mode
-		if ((mode == Common::FSNode::kListFilesOnly && entry._isDirectory) ||
-			(mode == Common::FSNode::kListDirectoriesOnly && !entry._isDirectory))
+		if ((mode == Common::FSNode::kListFilesOnly && entry->_isDirectory) ||
+			(mode == Common::FSNode::kListDirectoriesOnly && !entry->_isDirectory)) {
+			delete entry;
 			continue;
+		}
 
-		myList.push_back(new POSIXFilesystemNode(entry));
+		myList.push_back(entry);
 	}
 	closedir(dirp);
 

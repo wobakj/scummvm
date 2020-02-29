@@ -71,7 +71,7 @@ public:
 	inline int writeAudio(JNIEnv *env, jbyteArray &data, int offset,
 									int size);
 
-	Common::Array<Common::String> getAllStorageLocations();
+	bool getAllStorageLocations(Common::Array<Common::String> &res);
 	void finish();
 	Common::String stringFromKeyCode(AInputEvent* pInputEvent);
 	jobject getAssets();

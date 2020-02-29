@@ -491,13 +491,10 @@ Common::String JNI::convertFromJString(JNIEnv *env, const jstring &jstr, const C
 	return str;
 }
 
-Common::Array<Common::String> JNI::getAllStorageLocations() {
-	Common::Array<Common::String> *res = new Common::Array<Common::String>();
-
+bool JNI::getAllStorageLocations(Common::Array<Common::String> &res) {
 	JNIEnv *env = getEnv();
 
-	jobjectArray array =
-		(jobjectArray)env->CallObjectMethod(_instance, _MID_getAllStorageLocations);
+	jobjectArray array = (jobjectArray)env->CallObjectMethod(_instance, _MID_getAllStorageLocations);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Error finding system archive path");
@@ -505,7 +502,7 @@ Common::Array<Common::String> JNI::getAllStorageLocations() {
 		env->ExceptionDescribe();
 		env->ExceptionClear();
 
-		return *res;
+		return false;
 	}
 
 	jsize size = env->GetArrayLength(array);
@@ -514,14 +511,14 @@ Common::Array<Common::String> JNI::getAllStorageLocations() {
 		const char *path = env->GetStringUTFChars(path_obj, 0);
 
 		if (path != 0) {
-			res->push_back(path);
+			res.push_back(path);
 			env->ReleaseStringUTFChars(path_obj, path);
 		}
 
 		env->DeleteLocalRef(path_obj);
 	}
 
-	return *res;
+	return true;
 }
 
 void JNI::finish() {

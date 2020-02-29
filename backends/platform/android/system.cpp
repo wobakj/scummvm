@@ -24,6 +24,7 @@
 
 #include "backends/platform/android/asset-archive.h"
 #include "backends/platform/android/events.h"
+#include "backends/platform/android/fs.h"
 #include "backends/platform/android/graphics.h"
 #include "backends/platform/android/jni-android.h"
 
@@ -94,11 +95,11 @@ OSystem_Android::OSystem_Android(ANativeActivity* nativeActivity, int audio_samp
 	_dpad_scale(4),
 	_fingersDown(0),
 	_trackball_scale(2),
-	_joystick_scale(10) {
-
+	_joystick_scale(10)
+{
 	// LOGI("%s", gScummVMFullVersion);
 
-	_fsFactory = new POSIXFilesystemFactory();
+	_fsFactory = new AndroidFilesystemFactory(this);
 
 	LOGI("Running on: [%s] [%s] [%s] [%s] [%s] SDK:%s ABI:%s",
 			getSystemProperty("ro.product.manufacturer").c_str(),

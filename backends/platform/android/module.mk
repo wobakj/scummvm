@@ -4,6 +4,7 @@ MODULE_OBJS := \
 	jni-android.o \
 	asset-archive.o \
 	system.o \
+	fs.o \
 	graphics.o \
 	events.o \
 	native-activity.o \

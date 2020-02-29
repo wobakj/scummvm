@@ -37,7 +37,7 @@ protected:
 	bool _isDirectory;
 	bool _isValid;
 
-	virtual AbstractFSNode *makeNode(const Common::String &path) const {
+	virtual POSIXFilesystemNode *makeNode(const Common::String &path) const {
 		return new POSIXFilesystemNode(path);
 	}
 
