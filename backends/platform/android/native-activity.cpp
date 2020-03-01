@@ -132,7 +132,7 @@ void ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_
     activity->callbacks->onInputQueueCreated = onInputQueueCreated;
     activity->callbacks->onInputQueueDestroyed = onInputQueueDestroyed;
 
-    OSystem_Android *android_system = new OSystem_Android(activity, 44100, 2048);
+    OSystem_Android *android_system = new OSystem_Android(activity);
     g_system = android_system;
     activity->instance = android_system;
 }

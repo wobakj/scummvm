@@ -25,7 +25,6 @@
 
 #include "backends/platform/android/common.h"
 
-#include "audio/mixer_intern.h"
 #include "backends/fs/posix/posix-fs-factory.h"
 #include "backends/modular-backend.h"
 #include "backends/platform/android/portdefs.h"
@@ -38,12 +37,12 @@
 #include <android/native_window.h>
 #include <android/log.h>
 
-class AndroidGraphicsManager;
-class AndroidEventSource;
 class AndroidAssetArchive;
+class AndroidEventSource;
+class AndroidGraphicsManager;
 class JNI;
 
-class OSystem_Android : public ModularMutexBackend, public ModularGraphicsBackend {
+class OSystem_Android : public ModularMutexBackend, public ModularGraphicsBackend, public ModularMixerBackend {
 public:
 	JNI* _jni;
 	ANativeActivity* _nativeActivity;
@@ -54,10 +53,6 @@ private:
 	ANativeWindow* _waitingNativeWindow;
 	AInputQueue* _waitingInputQueue;
 
-	// passed from the dark side
-	int _audio_sample_rate;
-	int _audio_buffer_size;
-
 	bool _mainThreadRunning;
 	pthread_t _mainThread;
 	static void *mainThreadFunc(void *arg);
@@ -66,19 +61,14 @@ private:
 	pthread_t _timer_thread;
 	static void *timerThreadFunc(void *arg);
 
-	bool _audio_thread_exit;
-	pthread_t _audio_thread;
-	static void *audioThreadFunc(void *arg);
-
 	bool _virtkeybd_on;
 
-	Audio::MixerImpl *_mixer;
 	timeval _startTime;
 
 	Common::String getSystemProperty(const char *name) const;
 
 public:
-	OSystem_Android(ANativeActivity* nativeActivity, int audio_sample_rate, int audio_buffer_size);
+	OSystem_Android(ANativeActivity* nativeActivity);
 	virtual ~OSystem_Android();
 
 	virtual void initBackend() override;
@@ -110,7 +100,6 @@ public:
 
 	virtual void setWindowCaption(const char *caption) override;
 
-	virtual Audio::Mixer *getMixer() override;
 	virtual void getTimeAndDate(TimeDate &t) const override;
 	virtual void logMessage(LogMessageType::Type type, const char *message) override;
 	virtual void addSysArchivesToSearchSet(Common::SearchSet &s, int priority = 0) override;

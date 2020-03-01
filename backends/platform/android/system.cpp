@@ -23,6 +23,7 @@
 #include "backends/platform/android/system.h"
 
 #include "backends/platform/android/asset-archive.h"
+#include "backends/platform/android/audio.h"
 #include "backends/platform/android/events.h"
 #include "backends/platform/android/fs.h"
 #include "backends/platform/android/graphics.h"
@@ -73,29 +74,14 @@ extern "C" {
 	}
 }
 
-OSystem_Android::OSystem_Android(ANativeActivity* nativeActivity, int audio_sample_rate, int audio_buffer_size) :
+OSystem_Android::OSystem_Android(ANativeActivity* nativeActivity) :
 	_jni(new JNI(this, nativeActivity)),
 	_nativeActivity(nativeActivity),
 	_eventSource(nullptr),
 	_assetArchive(nullptr),
 	_waitingNativeWindow(nullptr),
 	_waitingInputQueue(nullptr),
-	_audio_sample_rate(audio_sample_rate),
-	_audio_buffer_size(audio_buffer_size),
-	_mainThreadRunning(false),
-	_mixer(0),
-	_touch_pt_down(),
-	_touch_pt_scroll(),
-	_touch_pt_dt(),
-	_eventScaleX(100),
-	_eventScaleY(100),
-	// TODO put these values in some option dlg?
-	_touchpad_mode(true),
-	_touchpad_scale(66),
-	_dpad_scale(4),
-	_fingersDown(0),
-	_trackball_scale(2),
-	_joystick_scale(10)
+	_mainThreadRunning(false)
 {
 	// LOGI("%s", gScummVMFullVersion);
 
@@ -123,22 +109,6 @@ OSystem_Android::~OSystem_Android() {
 
 		_mainThreadRunning = false;
 	}
-
-	// _audiocdManager should be deleted before _mixer!
-	// It is normally deleted in proper order in the OSystem destructor.
-	// However, currently _mixer is deleted here (OSystem_Android)
-	// and in the ModularBackend destructor,
-	// hence unless _audiocdManager is deleted here first,
-	// it will cause a crash for the Android app (arm64 v8a) upon exit
-	// -- when the audio cd manager was actually used eg. audio cd test of the testbed
-	// FIXME: A more proper fix would probably be to:
-	//        - delete _mixer in the base class (OSystem) after _audiocdManager (this is already the current behavior)
-	//	      - remove its deletion from OSystem_Android and ModularBackend (this is what needs to be fixed).
-	delete _audiocdManager;
-	_audiocdManager = nullptr;
-
-	delete _mixer;
-	_mixer = nullptr;
 
 	delete _fsFactory;
 	_fsFactory = 0;
@@ -202,130 +172,6 @@ void *OSystem_Android::timerThreadFunc(void *arg) {
 		timer->handler();
 		nanosleep(&tv, 0);
 	}
-
-	system->_jni->detachThread();
-
-	return 0;
-}
-
-void *OSystem_Android::audioThreadFunc(void *arg) {
-	OSystem_Android *system = (OSystem_Android *)arg;
-	Audio::MixerImpl *mixer = system->_mixer;
-
-	uint buf_size = system->_audio_buffer_size;
-
-	system->_jni->attachThread("ScummVM audio thread");
-	JNIEnv *env = system->_jni->getEnv();
-
-	jbyteArray bufa = env->NewByteArray(buf_size);
-
-	bool paused = true;
-
-	int offset, left, written, i;
-
-	struct timespec tv_delay;
-	tv_delay.tv_sec = 0;
-	tv_delay.tv_nsec = 20 * 1000 * 1000;
-
-	uint msecs_full = buf_size * 1000 / (mixer->getOutputRate() * 2 * 2);
-
-	struct timespec tv_full;
-	tv_full.tv_sec = 0;
-	tv_full.tv_nsec = msecs_full * 1000 * 1000;
-
-	uint silence_count = 33;
-
-	while (!system->_audio_thread_exit) {
-		if (system->_jni->_pause) {
-			system->_jni->setAudioStop();
-
-			paused = true;
-			silence_count = 33;
-
-			LOGD("audio thread going to sleep");
-			sem_wait(&system->_jni->_pause_sem);
-			LOGD("audio thread woke up");
-		}
-
-		byte *buf = (byte *)env->GetPrimitiveArrayCritical(bufa, 0);
-		assert(buf);
-
-		int samples = mixer->mixCallback(buf, buf_size);
-
-		bool silence = samples < 1;
-
-		// looks stupid, and it is, but currently there's no way to detect
-		// silence-only buffers from the mixer
-		if (!silence) {
-			silence = true;
-
-			for (i = 0; i < samples; i += 2)
-				// SID streams constant crap
-				if (READ_UINT16(buf + i) > 32) {
-					silence = false;
-					break;
-				}
-		}
-
-		env->ReleasePrimitiveArrayCritical(bufa, buf, 0);
-
-		if (silence) {
-			if (!paused)
-				silence_count++;
-
-			// only pause after a while to prevent toggle mania
-			if (silence_count > 32) {
-				if (!paused) {
-					LOGD("AudioTrack pause");
-
-					system->_jni->setAudioPause();
-					paused = true;
-				}
-
-				nanosleep(&tv_full, 0);
-
-				continue;
-			}
-		}
-
-		if (paused) {
-			LOGD("AudioTrack play");
-
-			system->_jni->setAudioPlay();
-			paused = false;
-
-			silence_count = 0;
-		}
-
-		offset = 0;
-		left = buf_size;
-		written = 0;
-
-		while (left > 0) {
-			written = system->_jni->writeAudio(env, bufa, offset, left);
-
-			if (written < 0) {
-				LOGE("AudioTrack error: %d", written);
-				break;
-			}
-
-			// buffer full
-			if (written < left)
-				nanosleep(&tv_delay, 0);
-
-			offset += written;
-			left -= written;
-		}
-
-		if (written < 0)
-			break;
-
-		// prepare the next buffer, and run into the blocking AudioTrack.write
-	}
-
-	system->_jni->setAudioStop();
-
-	env->DeleteLocalRef(bufa);
 
 	system->_jni->detachThread();
 
@@ -454,16 +300,9 @@ void OSystem_Android::initBackend() {
 
 	gettimeofday(&_startTime, 0);
 
-	_mixer = new Audio::MixerImpl(_audio_sample_rate);
-	_mixer->setReady(true);
-
 	_timer_thread_exit = false;
 	pthread_create(&_timer_thread, 0, timerThreadFunc, this);
 	pthread_setname_np(_timer_thread, "ScummVM timer thread");
-
-	_audio_thread_exit = false;
-	pthread_create(&_audio_thread, 0, audioThreadFunc, this);
-	pthread_setname_np(_audio_thread, "ScummVM audio thread");
 
 	_graphicsManager = new AndroidGraphicsManager(this, _waitingNativeWindow);
 	_waitingNativeWindow = nullptr;
@@ -475,9 +314,7 @@ void OSystem_Android::initBackend() {
 	}
 	_eventManager = new DefaultEventManager(_eventSource);
 
-	// renice this thread to boost the audio thread
-	if (setpriority(PRIO_PROCESS, 0, 19) < 0)
-		warning("couldn't renice the main thread");
+	_mixerManager = new AndroidAudio();
 
 	_audiocdManager = new DefaultAudioCDManager();
 	BaseBackend::initBackend();
@@ -586,9 +423,6 @@ void OSystem_Android::delayMillis(uint msecs) {
 void OSystem_Android::quit() {
 	ENTER();
 
-	_audio_thread_exit = true;
-	pthread_join(_audio_thread, 0);
-
 	_timer_thread_exit = true;
 	pthread_join(_timer_thread, 0);
 
@@ -604,11 +438,6 @@ void OSystem_Android::setWindowCaption(const char *caption) {
 	ENTER("%s", caption);
 
 	_jni->setWindowCaption(caption);
-}
-
-Audio::Mixer *OSystem_Android::getMixer() {
-	assert(_mixer);
-	return _mixer;
 }
 
 void OSystem_Android::getTimeAndDate(TimeDate &td) const {

@@ -2,6 +2,7 @@ MODULE := backends/platform/android
 
 MODULE_OBJS := \
 	jni-android.o \
+	audio.o \
 	asset-archive.o \
 	system.o \
 	fs.o \

@@ -1644,21 +1644,25 @@ case $_host in
 	docdir='${prefix}/doc'
 	;;
 android-arm-v7a | ouya)
+	_use_cxx11=yes
 	_host_os=android
 	_host_cpu=arm
 	_host_alias=arm-linux-androideabi
 	;;
 android-arm64-v8a)
+	_use_cxx11=yes
 	_host_os=android
 	_host_cpu=aarch64
 	_host_alias=aarch64-linux-android
 	;;
 android-x86)
+	_use_cxx11=yes
 	_host_os=android
 	_host_cpu=i686
 	_host_alias=i686-linux-android
 	;;
 android-x86_64)
+	_use_cxx11=yes
 	_host_os=android
 	_host_cpu=x86_64
 	_host_alias=x86_64-linux-android
@@ -1921,13 +1925,13 @@ esac
 case $_host_os in
 android)
 	if test -z "$ANDROID_SDK_ROOT"; then
-		echo "Please set ANDROID_SDK_ROOT in your environment: export ANDROID_SDK_ROOT=<path to Android SDK>"
- 		exit 1
+		echo "Please set ANDROID_SDK_ROOT in your environment. export ANDROID_SDK_ROOT=<path to Android SDK>"
+		exit 1
 	fi
 	if test -z "$ANDROID_NDK_ROOT"; then
-		echo "Please set ANDROID_NDK_ROOT in your environment: export ANDROID_NDK_ROOT=<path to Android NDK>"
- 		exit 1
- 	fi
+		echo "Please set ANDROID_NDK_ROOT in your environment. export ANDROID_NDK_ROOT=<path to Android NDK>"
+		exit 1
+	fi
 	;;
 3ds | ds | gamecube | switch | wii)
 	if test -z "$DEVKITPRO"; then
@@ -2768,6 +2772,9 @@ case $_host_os in
 
 		# Build ID is needed for native debugging in Android Studio
 		append_var LDFLAGS "-Wl,--build-id=sha1"
+
+		# Google Oboe audio library for audio platform abstraction
+		append_var LIBS "-loboe"
 
 		add_line_to_config_mk "ANDROID_SDK_ROOT := $ANDROID_SDK_ROOT"
 		add_line_to_config_mk "ANDROID_NDK_ROOT := $ANDROID_NDK_ROOT"
@@ -4323,6 +4330,7 @@ EOF
 fi
 define_in_config_if_yes "$_ogg" 'USE_OGG'
 echo "$_ogg"
+
 #
 # Check for TTS
 #
@@ -5726,6 +5734,32 @@ if test "$_pandocext" = "default"; then
 fi
 
 #
+# Check for Google Oboe audio library to be present on Android
+#
+case $_host_os in
+	android)
+		echocheck "Oboe"
+		oboe=no
+		cat > $TMPC << EOF
+#include <oboe/Oboe.h>
+int main(void) {
+	oboe::AudioStreamBuilder streamBuilder;
+	oboe::AudioStream *stream;
+
+	streamBuilder.openStream(&stream);
+	return 0;
+}
+EOF
+		cc_check $LIBS "-lOpenSLES" && oboe=yes
+		echo "$oboe"
+		if test "$oboe" = no ; then
+			echo "Google Oboe audio library is required for Android"
+			exit 1
+		fi
+		;;
+esac
+
+#
 # Check for Discord
 #
 echocheck "Discord RPC"
@@ -5750,6 +5784,7 @@ echo "$_discord"
 define_in_config_if_yes $_vkeybd 'ENABLE_VKEYBD'
 define_in_config_if_yes $_eventrec 'ENABLE_EVENTRECORDER'
 
+#
 # Check whether to build translation support
 #
 echo_n "Building translation support... "
@@ -6083,7 +6118,7 @@ case $_host_os in
 		# -lgcc is carefully placed here - we want to catch
 		# all toolchain symbols in *our* libraries rather
 		# than pick up anything unhygenic from the Android libs.
-		LIBS="-Wl,-Bstatic $static_libs -Wl,-Bdynamic -lgcc $system_libs -llog -landroid -lGLESv1_CM -lEGL -lGLESv2"
+		LIBS="-Wl,-Bstatic $static_libs -Wl,-Bdynamic -lgcc $system_libs -llog -landroid -lGLESv1_CM -lEGL -lGLESv2 -lOpenSLES"
 		;;
 	riscos)
 		append_var CXXFLAGS "-mno-poke-function-name"

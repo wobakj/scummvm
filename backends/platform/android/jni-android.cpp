@@ -49,7 +49,6 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	_activity(activity),
 	_instance(_activity->clazz),
 	_assets(nullptr),
-	_jobj_audio_track(nullptr),
 	_MID_getDPI(nullptr),
 	_MID_displayMessageOnOSD(nullptr),
 	_MID_openUrl(nullptr),
@@ -63,12 +62,7 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	_MID_convertEncoding(nullptr),
 	_MID_getAllStorageLocations(nullptr),
 	_MID_finish(nullptr),
-	_MID_stringFromKeyCode(nullptr),
-	_MID_AudioTrack_flush(nullptr),
-	_MID_AudioTrack_pause(nullptr),
-	_MID_AudioTrack_play(nullptr),
-	_MID_AudioTrack_stop(nullptr),
-	_MID_AudioTrack_write(nullptr)
+	_MID_stringFromKeyCode(nullptr)
  {
 	// should be called from main thread
 
@@ -102,17 +96,6 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	FIND_METHOD(, finish, "()V");
 	FIND_METHOD(, stringFromKeyCode, "(JJIIIIIIII)Ljava/lang/String;");
 	FIND_METHOD(, getAssets, "()Landroid/content/res/AssetManager;");
-
-	// _jobj_audio_track = env->NewGlobalRef(at);
-
-	// clazz = env->GetObjectClass(_jobj_audio_track);
-
-	// FIND_METHOD(AudioTrack_, flush, "()V");
-	// FIND_METHOD(AudioTrack_, pause, "()V");
-	// FIND_METHOD(AudioTrack_, play, "()V");
-	// FIND_METHOD(AudioTrack_, stop, "()V");
-	// FIND_METHOD(AudioTrack_, write, "([BII)I");
-
 #undef FIND_METHOD
 }
 
@@ -375,54 +358,6 @@ char *JNI::convertEncoding(const char *to, const char *from, const char *string,
 	buf[outLength] = 0;
 
 	return buf;
-}
-
-void JNI::setAudioPause() {
-	JNIEnv *env = getEnv();
-
-	env->CallVoidMethod(_jobj_audio_track, _MID_AudioTrack_flush);
-
-	if (env->ExceptionCheck()) {
-		LOGE("Error flushing AudioTrack");
-
-		env->ExceptionDescribe();
-		env->ExceptionClear();
-	}
-
-	env->CallVoidMethod(_jobj_audio_track, _MID_AudioTrack_pause);
-
-	if (env->ExceptionCheck()) {
-		LOGE("Error setting AudioTrack: pause");
-
-		env->ExceptionDescribe();
-		env->ExceptionClear();
-	}
-}
-
-void JNI::setAudioPlay() {
-	JNIEnv *env = getEnv();
-
-	env->CallVoidMethod(_jobj_audio_track, _MID_AudioTrack_play);
-
-	if (env->ExceptionCheck()) {
-		LOGE("Error setting AudioTrack: play");
-
-		env->ExceptionDescribe();
-		env->ExceptionClear();
-	}
-}
-
-void JNI::setAudioStop() {
-	JNIEnv *env = getEnv();
-
-	env->CallVoidMethod(_jobj_audio_track, _MID_AudioTrack_stop);
-
-	if (env->ExceptionCheck()) {
-		LOGE("Error setting AudioTrack: stop");
-
-		env->ExceptionDescribe();
-		env->ExceptionClear();
-	}
 }
 
 // natives for the dark side

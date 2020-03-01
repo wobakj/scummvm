@@ -64,13 +64,6 @@ public:
 	void showKeyboardControl(bool enable);
 	char *convertEncoding(const char *to, const char *from, const char *string, size_t length);
 
-	void setAudioPause();
-	void setAudioPlay();
-	void setAudioStop();
-
-	inline int writeAudio(JNIEnv *env, jbyteArray &data, int offset,
-									int size);
-
 	bool getAllStorageLocations(Common::Array<Common::String> &res);
 	void finish();
 	Common::String stringFromKeyCode(AInputEvent* pInputEvent);
@@ -83,8 +76,6 @@ private:
 	// back pointer to (java) peer instance
 	jobject _instance;
 	jobject _assets;
-
-	jobject _jobj_audio_track;
 
 	jmethodID _MID_getDPI;
 	jmethodID _MID_displayMessageOnOSD;
@@ -102,13 +93,6 @@ private:
 	jmethodID _MID_stringFromKeyCode;
 	jmethodID _MID_getAssets;
 
-	jmethodID _MID_AudioTrack_flush;
-	jmethodID _MID_AudioTrack_pause;
-	jmethodID _MID_AudioTrack_play;
-	jmethodID _MID_AudioTrack_stop;
-	jmethodID _MID_AudioTrack_write;
-
-
 	void throwByName(JNIEnv *env, const char *name, const char *msg);
 	void throwRuntimeException(JNIEnv *env, const char *msg);
 
@@ -124,10 +108,5 @@ private:
 
 	PauseToken _pauseToken;
 };
-
-inline int JNI::writeAudio(JNIEnv *env, jbyteArray &data, int offset, int size) {
-	return env->CallIntMethod(_jobj_audio_track, _MID_AudioTrack_write, data,
-								offset, size);
-}
 
 #endif
