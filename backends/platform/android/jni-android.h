@@ -33,114 +33,97 @@
 
 #include <jni.h>
 #include <semaphore.h>
+#include <android/native_activity.h>
 
 class OSystem_Android;
 
 class JNI {
-private:
-	JNI();
+public:
+	JNI(OSystem_Android *system, ANativeActivity *activity);
 	virtual ~JNI();
 
-public:
-	static bool pause;
-	static sem_t pause_sem;
+	bool _pause;
+	sem_t _pause_sem;
 
-	static int surface_changeid;
-	static int egl_surface_width;
-	static int egl_surface_height;
+	jint onLoad(JavaVM *vm);
 
-	static jint onLoad(JavaVM *vm);
+	JNIEnv *getEnv();
 
-	static JNIEnv *getEnv();
+	void attachThread(const char* threadName);
+	void detachThread();
 
-	static void attachThread();
-	static void detachThread();
+	void setReadyForEvents(bool ready);
 
-	static void setReadyForEvents(bool ready);
+	void setWindowCaption(const Common::String &caption);
+	void getDPI(float *values);
+	void displayMessageOnOSD(const Common::U32String &msg);
+	bool openUrl(const Common::String &url);
+	bool hasTextInClipboard();
+	Common::U32String getTextFromClipboard();
+	bool setTextInClipboard(const Common::U32String &text);
+	bool isConnectionLimited();
+	void showVirtualKeyboard(bool enable);
+	void showKeyboardControl(bool enable);
+	void addSysArchivesToSearchSet(Common::SearchSet &s, int priority);
+	char *convertEncoding(const char *to, const char *from, const char *string, size_t length);
 
-	static void setWindowCaption(const Common::String &caption);
-	static void getDPI(float *values);
-	static void displayMessageOnOSD(const Common::U32String &msg);
-	static bool openUrl(const Common::String &url);
-	static bool hasTextInClipboard();
-	static Common::U32String getTextFromClipboard();
-	static bool setTextInClipboard(const Common::U32String &text);
-	static bool isConnectionLimited();
-	static void showVirtualKeyboard(bool enable);
-	static void showKeyboardControl(bool enable);
-	static void addSysArchivesToSearchSet(Common::SearchSet &s, int priority);
-	static char *convertEncoding(const char *to, const char *from, const char *string, size_t length);
+	void setAudioPause();
+	void setAudioPlay();
+	void setAudioStop();
 
-	static void setAudioPause();
-	static void setAudioPlay();
-	static void setAudioStop();
-
-	static inline int writeAudio(JNIEnv *env, jbyteArray &data, int offset,
+	inline int writeAudio(JNIEnv *env, jbyteArray &data, int offset,
 									int size);
 
-	static Common::Array<Common::String> getAllStorageLocations();
+	Common::Array<Common::String> getAllStorageLocations();
 
 private:
-	static JavaVM *_vm;
+	OSystem_Android *_system;
+	ANativeActivity *_activity;
+
 	// back pointer to (java) peer instance
-	static jobject _jobj;
-	static jobject _jobj_audio_track;
-	static jobject _jobj_egl;
-	static jobject _jobj_egl_display;
-	static jobject _jobj_egl_surface;
+	jobject _instance;
+	jobject _jobj_audio_track;
 
-	static Common::Archive *_asset_archive;
-	static OSystem_Android *_system;
+	Common::Archive *_asset_archive;
 
-	static bool _ready_for_events;
+	bool _ready_for_events;
 
-	static jmethodID _MID_getDPI;
-	static jmethodID _MID_displayMessageOnOSD;
-	static jmethodID _MID_openUrl;
-	static jmethodID _MID_hasTextInClipboard;
-	static jmethodID _MID_getTextFromClipboard;
-	static jmethodID _MID_setTextInClipboard;
-	static jmethodID _MID_isConnectionLimited;
-	static jmethodID _MID_setWindowCaption;
-	static jmethodID _MID_showVirtualKeyboard;
-	static jmethodID _MID_showKeyboardControl;
-	static jmethodID _MID_getSysArchives;
-	static jmethodID _MID_convertEncoding;
-	static jmethodID _MID_getAllStorageLocations;
-	static jmethodID _MID_initSurface;
-	static jmethodID _MID_deinitSurface;
+	jmethodID _MID_getDPI;
+	jmethodID _MID_displayMessageOnOSD;
+	jmethodID _MID_openUrl;
+	jmethodID _MID_hasTextInClipboard;
+	jmethodID _MID_getTextFromClipboard;
+	jmethodID _MID_setTextInClipboard;
+	jmethodID _MID_isConnectionLimited;
+	jmethodID _MID_setWindowCaption;
+	jmethodID _MID_showVirtualKeyboard;
+	jmethodID _MID_showKeyboardControl;
+	jmethodID _MID_getSysArchives;
+	jmethodID _MID_convertEncoding;
+	jmethodID _MID_getAllStorageLocations;
 
-	static jmethodID _MID_EGL10_eglSwapBuffers;
+	jmethodID _MID_AudioTrack_flush;
+	jmethodID _MID_AudioTrack_pause;
+	jmethodID _MID_AudioTrack_play;
+	jmethodID _MID_AudioTrack_stop;
+	jmethodID _MID_AudioTrack_write;
 
-	static jmethodID _MID_AudioTrack_flush;
-	static jmethodID _MID_AudioTrack_pause;
-	static jmethodID _MID_AudioTrack_play;
-	static jmethodID _MID_AudioTrack_stop;
-	static jmethodID _MID_AudioTrack_write;
 
-	static const JNINativeMethod _natives[];
-
-	static void throwByName(JNIEnv *env, const char *name, const char *msg);
-	static void throwRuntimeException(JNIEnv *env, const char *msg);
+	void throwByName(JNIEnv *env, const char *name, const char *msg);
+	void throwRuntimeException(JNIEnv *env, const char *msg);
 
 	// natives for the dark side
-	static void create(JNIEnv *env, jobject self, jobject asset_manager,
-						jobject egl, jobject egl_display,
-						jobject at, jint audio_sample_rate,
-						jint audio_buffer_size);
-	static void destroy(JNIEnv *env, jobject self);
 
-	static void setSurface(JNIEnv *env, jobject self, jint width, jint height);
-	static jint main(JNIEnv *env, jobject self, jobjectArray args);
+	static const JNINativeMethod _natives[];
 
 	static void pushEvent(JNIEnv *env, jobject self, int type, int arg1,
 							int arg2, int arg3, int arg4, int arg5, int arg6);
 	static void setPause(JNIEnv *env, jobject self, jboolean value);
 
-	static jstring convertToJString(JNIEnv *env, const Common::String &str, const Common::String &from);
-	static Common::String convertFromJString(JNIEnv *env, const jstring &jstr, const Common::String &to);
+	jstring convertToJString(JNIEnv *env, const Common::String &str, const Common::String &from);
+	Common::String convertFromJString(JNIEnv *env, const jstring &jstr, const Common::String &to);
 
-	static PauseToken _pauseToken;
+	PauseToken _pauseToken;
 };
 
 inline int JNI::writeAudio(JNIEnv *env, jbyteArray &data, int offset, int size) {

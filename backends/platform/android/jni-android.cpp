@@ -35,101 +35,94 @@
 #include "engines/engine.h"
 
 
-__attribute__ ((visibility("default")))
-jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
-	return JNI::onLoad(vm);
-}
-
-JavaVM *JNI::_vm = 0;
-jobject JNI::_jobj = 0;
-jobject JNI::_jobj_audio_track = 0;
-jobject JNI::_jobj_egl = 0;
-jobject JNI::_jobj_egl_display = 0;
-jobject JNI::_jobj_egl_surface = 0;
-
-Common::Archive *JNI::_asset_archive = 0;
-OSystem_Android *JNI::_system = 0;
-
-bool JNI::pause = false;
-sem_t JNI::pause_sem = { 0 };
-
-int JNI::surface_changeid = 0;
-int JNI::egl_surface_width = 0;
-int JNI::egl_surface_height = 0;
-bool JNI::_ready_for_events = 0;
-
-jmethodID JNI::_MID_getDPI = 0;
-jmethodID JNI::_MID_displayMessageOnOSD = 0;
-jmethodID JNI::_MID_openUrl = 0;
-jmethodID JNI::_MID_hasTextInClipboard = 0;
-jmethodID JNI::_MID_getTextFromClipboard = 0;
-jmethodID JNI::_MID_setTextInClipboard = 0;
-jmethodID JNI::_MID_isConnectionLimited = 0;
-jmethodID JNI::_MID_setWindowCaption = 0;
-jmethodID JNI::_MID_showVirtualKeyboard = 0;
-jmethodID JNI::_MID_showKeyboardControl = 0;
-jmethodID JNI::_MID_getSysArchives = 0;
-jmethodID JNI::_MID_convertEncoding = 0;
-jmethodID JNI::_MID_getAllStorageLocations = 0;
-jmethodID JNI::_MID_initSurface = 0;
-jmethodID JNI::_MID_deinitSurface = 0;
-
-jmethodID JNI::_MID_EGL10_eglSwapBuffers = 0;
-
-jmethodID JNI::_MID_AudioTrack_flush = 0;
-jmethodID JNI::_MID_AudioTrack_pause = 0;
-jmethodID JNI::_MID_AudioTrack_play = 0;
-jmethodID JNI::_MID_AudioTrack_stop = 0;
-jmethodID JNI::_MID_AudioTrack_write = 0;
-
-PauseToken JNI::_pauseToken;
-
 const JNINativeMethod JNI::_natives[] = {
-	{ "create", "(Landroid/content/res/AssetManager;"
-				"Ljavax/microedition/khronos/egl/EGL10;"
-				"Ljavax/microedition/khronos/egl/EGLDisplay;"
-				"Landroid/media/AudioTrack;II)V",
-		(void *)JNI::create },
-	{ "destroy", "()V",
-		(void *)JNI::destroy },
-	{ "setSurface", "(II)V",
-		(void *)JNI::setSurface },
-	{ "main", "([Ljava/lang/String;)I",
-		(void *)JNI::main },
 	{ "pushEvent", "(IIIIIII)V",
 		(void *)JNI::pushEvent },
 	{ "setPause", "(Z)V",
 		(void *)JNI::setPause }
 };
 
-JNI::JNI() {
+JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
+	_pause(false),
+	_system(system),
+	_activity(activity),
+	_instance(_activity->clazz),
+	_jobj_audio_track(nullptr),
+	_asset_archive(nullptr),
+	_ready_for_events(false),
+	_MID_getDPI(nullptr),
+	_MID_displayMessageOnOSD(nullptr),
+	_MID_openUrl(nullptr),
+	_MID_hasTextInClipboard(nullptr),
+	_MID_getTextFromClipboard(nullptr),
+	_MID_setTextInClipboard(nullptr),
+	_MID_isConnectionLimited(nullptr),
+	_MID_setWindowCaption(nullptr),
+	_MID_showVirtualKeyboard(nullptr),
+	_MID_showKeyboardControl(nullptr),
+	_MID_getSysArchives(nullptr),
+	_MID_convertEncoding(nullptr),
+	_MID_getAllStorageLocations(nullptr),
+	_MID_AudioTrack_flush(nullptr),
+	_MID_AudioTrack_pause(nullptr),
+	_MID_AudioTrack_play(nullptr),
+	_MID_AudioTrack_stop(nullptr),
+	_MID_AudioTrack_write(nullptr)
+ {
+	// should be called from main thread
+
+	// _asset_archive = new AndroidAssetArchive(asset_manager);
+	// assert(_asset_archive);
+
+	// initial value of zero!
+	sem_init(&_pause_sem, 0, 0);
+
+	JNIEnv *env = _activity->env;
+
+	jclass clazz = env->GetObjectClass(_instance);
+
+	env->RegisterNatives(clazz, _natives, ARRAYSIZE(_natives));
+
+#define FIND_METHOD(prefix, name, signature) do {							\
+		_MID_ ## prefix ## name = env->GetMethodID(clazz, #name, signature);	\
+		if (_MID_ ## prefix ## name == 0)									\
+			return;															\
+	} while (0)
+
+	FIND_METHOD(, setWindowCaption, "(Ljava/lang/String;)V");
+	FIND_METHOD(, getDPI, "([F)V");
+	FIND_METHOD(, displayMessageOnOSD, "(Ljava/lang/String;)V");
+	FIND_METHOD(, openUrl, "(Ljava/lang/String;)V");
+	FIND_METHOD(, hasTextInClipboard, "()Z");
+	FIND_METHOD(, getTextFromClipboard, "()Ljava/lang/String;");
+	FIND_METHOD(, setTextInClipboard, "(Ljava/lang/String;)Z");
+	FIND_METHOD(, isConnectionLimited, "()Z");
+	FIND_METHOD(, showVirtualKeyboard, "(Z)V");
+	FIND_METHOD(, showKeyboardControl, "(Z)V");
+	FIND_METHOD(, getSysArchives, "()[Ljava/lang/String;");
+	FIND_METHOD(, getAllStorageLocations, "()[Ljava/lang/String;");
+	FIND_METHOD(, convertEncoding, "(Ljava/lang/String;Ljava/lang/String;[B)[B");
+
+	// _jobj_audio_track = env->NewGlobalRef(at);
+
+	// clazz = env->GetObjectClass(_jobj_audio_track);
+
+	// FIND_METHOD(AudioTrack_, flush, "()V");
+	// FIND_METHOD(AudioTrack_, pause, "()V");
+	// FIND_METHOD(AudioTrack_, play, "()V");
+	// FIND_METHOD(AudioTrack_, stop, "()V");
+	// FIND_METHOD(AudioTrack_, write, "([BII)I");
+
+#undef FIND_METHOD
 }
 
 JNI::~JNI() {
-}
-
-jint JNI::onLoad(JavaVM *vm) {
-	_vm = vm;
-
-	JNIEnv *env;
-
-	if (_vm->GetEnv((void **)&env, JNI_VERSION_1_2))
-		return JNI_ERR;
-
-	jclass cls = env->FindClass("org/scummvm/scummvm/ScummVM");
-	if (cls == 0)
-		return JNI_ERR;
-
-	if (env->RegisterNatives(cls, _natives, ARRAYSIZE(_natives)) < 0)
-		return JNI_ERR;
-
-	return JNI_VERSION_1_2;
+	// should be called from main thread
 }
 
 JNIEnv *JNI::getEnv() {
-	JNIEnv *env = 0;
-
-	jint res = _vm->GetEnv((void **)&env, JNI_VERSION_1_2);
+	JNIEnv *env = nullptr;
+	jint res = _activity->vm->GetEnv((void **)&env, JNI_VERSION_1_6);
 
 	if (res != JNI_OK) {
 		LOGE("GetEnv() failed: %d", res);
@@ -139,24 +132,18 @@ JNIEnv *JNI::getEnv() {
 	return env;
 }
 
-void JNI::attachThread() {
-	JNIEnv *env = 0;
+void JNI::attachThread(const char* threadName) {
+	JavaVMAttachArgs args;
+	args.version = JNI_VERSION_1_6;
+	args.name = threadName;
+	args.group = nullptr;
 
-	jint res = _vm->AttachCurrentThread(&env, 0);
-
-	if (res != JNI_OK) {
-		LOGE("AttachCurrentThread() failed: %d", res);
-		abort();
-	}
+	JNIEnv *env = nullptr;
+	_activity->vm->AttachCurrentThread(&env, &args);
 }
 
 void JNI::detachThread() {
-	jint res = _vm->DetachCurrentThread();
-
-	if (res != JNI_OK) {
-		LOGE("DetachCurrentThread() failed: %d", res);
-		abort();
-	}
+	_activity->vm->DetachCurrentThread();
 }
 
 void JNI::setReadyForEvents(bool ready) {
@@ -183,11 +170,11 @@ void JNI::getDPI(float *values) {
 	values[0] = 0.0;
 	values[1] = 0.0;
 
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
 	jfloatArray array = env->NewFloatArray(2);
 
-	env->CallVoidMethod(_jobj, _MID_getDPI, array);
+	env->CallVoidMethod(_instance, _MID_getDPI, array);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Failed to get DPIs");
@@ -210,7 +197,7 @@ void JNI::getDPI(float *values) {
 
 void JNI::displayMessageOnOSD(const Common::U32String &msg) {
 	// called from common/osd_message_queue, method: OSDMessageQueue::pollEvent()
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
 	jstring java_msg = convertToJString(env, msg.encode(), "UTF-8");
 	if (java_msg == nullptr) {
@@ -219,7 +206,7 @@ void JNI::displayMessageOnOSD(const Common::U32String &msg) {
 		LOGE("Failed to convert message to UTF-8 for OSD!");
 	}
 
-	env->CallVoidMethod(_jobj, _MID_displayMessageOnOSD, java_msg);
+	env->CallVoidMethod(_instance, _MID_displayMessageOnOSD, java_msg);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Failed to display OSD message");
@@ -233,10 +220,10 @@ void JNI::displayMessageOnOSD(const Common::U32String &msg) {
 
 bool JNI::openUrl(const Common::String &url) {
 	bool success = true;
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 	jstring javaUrl = env->NewStringUTF(url.c_str());
 
-	env->CallVoidMethod(_jobj, _MID_openUrl, javaUrl);
+	env->CallVoidMethod(_instance, _MID_openUrl, javaUrl);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Failed to open URL");
@@ -251,8 +238,8 @@ bool JNI::openUrl(const Common::String &url) {
 }
 
 bool JNI::hasTextInClipboard() {
-	JNIEnv *env = JNI::getEnv();
-	bool hasText = env->CallBooleanMethod(_jobj, _MID_hasTextInClipboard);
+	JNIEnv *env = getEnv();
+	bool hasText = env->CallBooleanMethod(_instance, _MID_hasTextInClipboard);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Failed to check the contents of the clipboard");
@@ -266,9 +253,9 @@ bool JNI::hasTextInClipboard() {
 }
 
 Common::U32String JNI::getTextFromClipboard() {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
-	jstring javaText = (jstring)env->CallObjectMethod(_jobj, _MID_getTextFromClipboard);
+	jstring javaText = (jstring)env->CallObjectMethod(_instance, _MID_getTextFromClipboard);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Failed to retrieve text from the clipboard");
@@ -286,10 +273,10 @@ Common::U32String JNI::getTextFromClipboard() {
 }
 
 bool JNI::setTextInClipboard(const Common::U32String &text) {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 	jstring javaText = convertToJString(env, text.encode(), "UTF-8");
 
-	bool success = env->CallBooleanMethod(_jobj, _MID_setTextInClipboard, javaText);
+	bool success = env->CallBooleanMethod(_instance, _MID_setTextInClipboard, javaText);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Failed to add text to the clipboard");
@@ -304,8 +291,8 @@ bool JNI::setTextInClipboard(const Common::U32String &text) {
 }
 
 bool JNI::isConnectionLimited() {
-	JNIEnv *env = JNI::getEnv();
-	bool limited = env->CallBooleanMethod(_jobj, _MID_isConnectionLimited);
+	JNIEnv *env = getEnv();
+	bool limited = env->CallBooleanMethod(_instance, _MID_isConnectionLimited);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Failed to check whether connection's limited");
@@ -319,10 +306,10 @@ bool JNI::isConnectionLimited() {
 }
 
 void JNI::setWindowCaption(const Common::String &caption) {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 	jstring java_caption = convertToJString(env, caption, "ISO-8859-1");
 
-	env->CallVoidMethod(_jobj, _MID_setWindowCaption, java_caption);
+	env->CallVoidMethod(_instance, _MID_setWindowCaption, java_caption);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Failed to set window caption");
@@ -335,9 +322,9 @@ void JNI::setWindowCaption(const Common::String &caption) {
 }
 
 void JNI::showVirtualKeyboard(bool enable) {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
-	env->CallVoidMethod(_jobj, _MID_showVirtualKeyboard, enable);
+	env->CallVoidMethod(_instance, _MID_showVirtualKeyboard, enable);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Error trying to show virtual keyboard");
@@ -348,9 +335,9 @@ void JNI::showVirtualKeyboard(bool enable) {
 }
 
 void JNI::showKeyboardControl(bool enable) {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
-	env->CallVoidMethod(_jobj, _MID_showKeyboardControl, enable);
+	env->CallVoidMethod(_instance, _MID_showKeyboardControl, enable);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Error trying to show virtual keyboard control");
@@ -365,12 +352,12 @@ void JNI::showKeyboardControl(bool enable) {
 // so we also make sure to add the "path" directory, with a higher priority
 // This is done via a call to ScummVMActivity's (java) getSysArchives
 void JNI::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
 	// get any additional specified paths (from ScummVMActivity code)
 	// Insert them with "priority" priority.
 	jobjectArray array =
-		(jobjectArray)env->CallObjectMethod(_jobj, _MID_getSysArchives);
+		(jobjectArray)env->CallObjectMethod(_instance, _MID_getSysArchives);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Error finding system archive path");
@@ -405,14 +392,14 @@ void JNI::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
 }
 
 char *JNI::convertEncoding(const char *to, const char *from, const char *string, size_t length) {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
 	jstring javaTo = env->NewStringUTF(to);
 	jstring javaFrom = env->NewStringUTF(from);
 	jbyteArray javaString = env->NewByteArray(length);
 	env->SetByteArrayRegion(javaString, 0, length, reinterpret_cast<const jbyte*>(string));
 
-	jbyteArray javaOut = (jbyteArray)env->CallObjectMethod(_jobj, _MID_convertEncoding, javaTo, javaFrom, javaString);
+	jbyteArray javaOut = (jbyteArray)env->CallObjectMethod(_instance, _MID_convertEncoding, javaTo, javaFrom, javaString);
 
 	if (!javaOut || env->ExceptionCheck()) {
 		LOGE("Failed to convert text from %s to %s", from, to);
@@ -435,7 +422,7 @@ char *JNI::convertEncoding(const char *to, const char *from, const char *string,
 }
 
 void JNI::setAudioPause() {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
 	env->CallVoidMethod(_jobj_audio_track, _MID_AudioTrack_flush);
 
@@ -457,7 +444,7 @@ void JNI::setAudioPause() {
 }
 
 void JNI::setAudioPlay() {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
 	env->CallVoidMethod(_jobj_audio_track, _MID_AudioTrack_play);
 
@@ -470,7 +457,7 @@ void JNI::setAudioPlay() {
 }
 
 void JNI::setAudioStop() {
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
 	env->CallVoidMethod(_jobj_audio_track, _MID_AudioTrack_stop);
 
@@ -484,194 +471,31 @@ void JNI::setAudioStop() {
 
 // natives for the dark side
 
-void JNI::create(JNIEnv *env, jobject self, jobject asset_manager,
-				jobject egl, jobject egl_display,
-				jobject at, jint audio_sample_rate, jint audio_buffer_size) {
-	LOGI("%s", gScummVMFullVersion);
-
-	assert(!_system);
-
-	pause = false;
-	// initial value of zero!
-	sem_init(&pause_sem, 0, 0);
-
-	_asset_archive = new AndroidAssetArchive(asset_manager);
-	assert(_asset_archive);
-
-	// _system = new OSystem_Android(audio_sample_rate, audio_buffer_size);
-	// assert(_system);
-
-	// weak global ref to allow class to be unloaded
-	// ... except dalvik implements NewWeakGlobalRef only on froyo
-	//_jobj = env->NewWeakGlobalRef(self);
-
-	_jobj = env->NewGlobalRef(self);
-
-	jclass cls = env->GetObjectClass(_jobj);
-
-#define FIND_METHOD(prefix, name, signature) do {							\
-		_MID_ ## prefix ## name = env->GetMethodID(cls, #name, signature);	\
-		if (_MID_ ## prefix ## name == 0)									\
-			return;															\
-	} while (0)
-
-	FIND_METHOD(, setWindowCaption, "(Ljava/lang/String;)V");
-	FIND_METHOD(, getDPI, "([F)V");
-	FIND_METHOD(, displayMessageOnOSD, "(Ljava/lang/String;)V");
-	FIND_METHOD(, openUrl, "(Ljava/lang/String;)V");
-	FIND_METHOD(, hasTextInClipboard, "()Z");
-	FIND_METHOD(, getTextFromClipboard, "()Ljava/lang/String;");
-	FIND_METHOD(, setTextInClipboard, "(Ljava/lang/String;)Z");
-	FIND_METHOD(, isConnectionLimited, "()Z");
-	FIND_METHOD(, showVirtualKeyboard, "(Z)V");
-	FIND_METHOD(, showKeyboardControl, "(Z)V");
-	FIND_METHOD(, getSysArchives, "()[Ljava/lang/String;");
-	FIND_METHOD(, getAllStorageLocations, "()[Ljava/lang/String;");
-	FIND_METHOD(, convertEncoding, "(Ljava/lang/String;Ljava/lang/String;[B)[B");
-	FIND_METHOD(, initSurface, "()Ljavax/microedition/khronos/egl/EGLSurface;");
-	FIND_METHOD(, deinitSurface, "()V");
-
-	_jobj_egl = env->NewGlobalRef(egl);
-	_jobj_egl_display = env->NewGlobalRef(egl_display);
-
-	cls = env->GetObjectClass(_jobj_egl);
-
-	FIND_METHOD(EGL10_, eglSwapBuffers,
-				"(Ljavax/microedition/khronos/egl/EGLDisplay;"
-				"Ljavax/microedition/khronos/egl/EGLSurface;)Z");
-
-	_jobj_audio_track = env->NewGlobalRef(at);
-
-	cls = env->GetObjectClass(_jobj_audio_track);
-
-	FIND_METHOD(AudioTrack_, flush, "()V");
-	FIND_METHOD(AudioTrack_, pause, "()V");
-	FIND_METHOD(AudioTrack_, play, "()V");
-	FIND_METHOD(AudioTrack_, stop, "()V");
-	FIND_METHOD(AudioTrack_, write, "([BII)I");
-
-#undef FIND_METHOD
-
-	g_system = _system;
-}
-
-void JNI::destroy(JNIEnv *env, jobject self) {
-	delete _asset_archive;
-	_asset_archive = 0;
-
-	// _system is a pointer of OSystem_Android <--- ModularBackend <--- BaseBacked <--- Common::OSystem
-	// It's better to call destroy() rather than just delete here
-	// to avoid mutex issues if a Common::String is used after this point
-	_system->destroy();
-
-	g_system = 0;
-	_system  = 0;
-
-	sem_destroy(&pause_sem);
-
-	// see above
-	//JNI::getEnv()->DeleteWeakGlobalRef(_jobj);
-
-	JNI::getEnv()->DeleteGlobalRef(_jobj_egl_display);
-	JNI::getEnv()->DeleteGlobalRef(_jobj_egl);
-	JNI::getEnv()->DeleteGlobalRef(_jobj_audio_track);
-	JNI::getEnv()->DeleteGlobalRef(_jobj);
-}
-
-void JNI::setSurface(JNIEnv *env, jobject self, jint width, jint height) {
-	egl_surface_width = width;
-	egl_surface_height = height;
-	surface_changeid++;
-}
-
-jint JNI::main(JNIEnv *env, jobject self, jobjectArray args) {
-	assert(_system);
-
-	const int MAX_NARGS = 32;
-	int res = -1;
-
-	int argc = env->GetArrayLength(args);
-	if (argc > MAX_NARGS) {
-		throwByName(env, "java/lang/IllegalArgumentException",
-					"too many arguments");
-		return 0;
-	}
-
-	char *argv[MAX_NARGS];
-
-	// note use in cleanup loop below
-	int nargs;
-
-	for (nargs = 0; nargs < argc; ++nargs) {
-		jstring arg = (jstring)env->GetObjectArrayElement(args, nargs);
-
-		if (arg == 0) {
-			argv[nargs] = 0;
-		} else {
-			const char *cstr = env->GetStringUTFChars(arg, 0);
-
-			argv[nargs] = const_cast<char *>(cstr);
-
-			// exception already thrown?
-			if (cstr == 0)
-				goto cleanup;
-		}
-
-		env->DeleteLocalRef(arg);
-	}
-
-	LOGI("Entering scummvm_main with %d args", argc);
-
-	res = scummvm_main(argc, argv);
-
-	LOGI("scummvm_main exited with code %d", res);
-
-	_system->quit();
-
-cleanup:
-	nargs--;
-
-	for (int i = 0; i < nargs; ++i) {
-		if (argv[i] == 0)
-			continue;
-
-		jstring arg = (jstring)env->GetObjectArrayElement(args, nargs);
-
-		// Exception already thrown?
-		if (arg == 0)
-			return res;
-
-		env->ReleaseStringUTFChars(arg, argv[i]);
-		env->DeleteLocalRef(arg);
-	}
-
-	return res;
-}
-
 void JNI::pushEvent(JNIEnv *env, jobject self, int type, int arg1, int arg2,
 					int arg3, int arg4, int arg5, int arg6) {
+	OSystem_Android *system = dynamic_cast<OSystem_Android *>(g_system);
+	assert(system);
+
 	// drop events until we're ready and after we quit
-	if (!_ready_for_events) {
+	if (!system->_jni->_ready_for_events) {
 		LOGW("dropping event");
 		return;
 	}
 
-	assert(_system);
-
-	_system->pushEvent(type, arg1, arg2, arg3, arg4, arg5, arg6);
+	system->pushEvent(type, arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 void JNI::setPause(JNIEnv *env, jobject self, jboolean value) {
-	if (!_system)
-		return;
+	OSystem_Android *system = dynamic_cast<OSystem_Android *>(g_system);
+	assert(system);
 
 	if (g_engine) {
 		LOGD("pauseEngine: %d", value);
 
 		if (value)
-			JNI::_pauseToken = g_engine->pauseEngine();
+			system->_jni->_pauseToken = g_engine->pauseEngine();
 		else
-			JNI::_pauseToken.clear();
+			system->_jni->_pauseToken.clear();
 
 		/*if (value &&
 				g_engine->hasFeature(Engine::kSupportsSavingDuringRuntime) &&
@@ -679,12 +503,12 @@ void JNI::setPause(JNIEnv *env, jobject self, jboolean value) {
 			g_engine->saveGameState(0, "Android parachute");*/
 	}
 
-	pause = value;
+	system->_jni->_pause = value;
 
-	if (!pause) {
+	if (!system->_jni->_pause) {
 		// wake up all threads
 		for (uint i = 0; i < 3; ++i)
-			sem_post(&pause_sem);
+			sem_post(&system->_jni->_pause_sem);
 	}
 }
 
@@ -718,10 +542,10 @@ Common::String JNI::convertFromJString(JNIEnv *env, const jstring &jstr, const C
 Common::Array<Common::String> JNI::getAllStorageLocations() {
 	Common::Array<Common::String> *res = new Common::Array<Common::String>();
 
-	JNIEnv *env = JNI::getEnv();
+	JNIEnv *env = getEnv();
 
 	jobjectArray array =
-		(jobjectArray)env->CallObjectMethod(_jobj, _MID_getAllStorageLocations);
+		(jobjectArray)env->CallObjectMethod(_instance, _MID_getAllStorageLocations);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Error finding system archive path");

@@ -102,10 +102,11 @@ bool AssetInputStream::seek(int32 offset, int whence) {
 	return true;
 }
 
-AndroidAssetArchive::AndroidAssetArchive(jobject am) : _hasCached(false) {
-	JNIEnv *env = JNI::getEnv();
-
-	_am = AAssetManager_fromJava(env, am);
+AndroidAssetArchive::AndroidAssetArchive(OSystem_Android *system)
+	: _system(system)
+	, _am(nullptr)
+	, _hasCached(false)
+{
 }
 
 AndroidAssetArchive::~AndroidAssetArchive() {

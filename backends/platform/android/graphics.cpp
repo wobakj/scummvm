@@ -78,7 +78,7 @@ void AndroidGraphicsManager::updateScreen() {
 void AndroidGraphicsManager::displayMessageOnOSD(const Common::U32String &msg) {
 	ENTER("%s", msg.encode().c_str());
 
-	JNI::displayMessageOnOSD(msg);
+	_system->_jni->displayMessageOnOSD(msg);
 }
 
 bool AndroidGraphicsManager::loadVideoMode(uint requestedWidth, uint requestedHeight, const Graphics::PixelFormat &format) {
@@ -261,7 +261,7 @@ void AndroidGraphicsManager::initEGLSurface(ANativeWindow *nativeWindow) {
 	// eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
 
 	float dpi[2];
-	JNI::getDPI(dpi);
+	_system->_jni->getDPI(dpi);
 	handleResize(w, h, dpi[0], dpi[1]);
 }
 

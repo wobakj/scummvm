@@ -33,9 +33,11 @@
 #include <jni.h>
 #include <android/asset_manager.h>
 
+class OSystem_Android;
+
 class AndroidAssetArchive : public Common::Archive {
 public:
-	AndroidAssetArchive(jobject am);
+	AndroidAssetArchive(OSystem_Android *system);
 	virtual ~AndroidAssetArchive();
 
 	virtual bool hasFile(const Common::String &name) const override;
@@ -44,6 +46,7 @@ public:
 	virtual Common::SeekableReadStream *createReadStreamForMember(const Common::String &name) const override;
 
 private:
+	OSystem_Android *_system;
 	AAssetManager *_am;
 	mutable Common::ArchiveMemberList _cachedMembers;
 	mutable bool _hasCached;

@@ -919,9 +919,9 @@ bool OSystem_Android::pollEvent(Common::Event &event) {
 	//ENTER();
 
 	if (pthread_self() == _mainThread) {
-		if (JNI::pause) {
+		if (_jni->_pause) {
 			LOGD("main thread going to sleep");
-			sem_wait(&JNI::pause_sem);
+			sem_wait(&_jni->_pause_sem);
 			LOGD("main thread woke up");
 		}
 	}

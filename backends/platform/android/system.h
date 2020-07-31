@@ -41,10 +41,15 @@
 #include <android/log.h>
 
 class AndroidGraphicsManager;
+class JNI;
 
 class OSystem_Android : public ModularMutexBackend, public ModularGraphicsBackend, Common::EventSource {
+public:
+	JNI* _jni;
+
 private:
 	ANativeActivity* _nativeActivity;
+
 	ANativeWindow *_waitingNativeWindow;
 
 	// passed from the dark side

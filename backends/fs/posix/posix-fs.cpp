@@ -173,23 +173,6 @@ bool POSIXFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, boo
 	}
 #endif
 
-#if defined(__ANDROID__) && !defined(ANDROIDSDL)
-	if (_path == "/") {
-		Common::Array<Common::String> list = JNI::getAllStorageLocations();
-		for (Common::Array<Common::String>::const_iterator it = list.begin(), end = list.end(); it != end; ++it) {
-			POSIXFilesystemNode *entry = new POSIXFilesystemNode();
-
-			entry->_isDirectory = true;
-			entry->_isValid = true;
-			entry->_displayName = *it;
-			++it;
-			entry->_path = *it;
-			myList.push_back(entry);
-		}
-		return true;
-	}
-#endif
-
 	DIR *dirp = opendir(_path.c_str());
 	struct dirent *dp;
 

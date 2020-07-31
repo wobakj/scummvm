@@ -71,6 +71,7 @@ extern "C" {
 }
 
 OSystem_Android::OSystem_Android(ANativeActivity* nativeActivity, int audio_sample_rate, int audio_buffer_size) :
+	_jni(new JNI(this, nativeActivity)),
 	_nativeActivity(nativeActivity),
 	_waitingNativeWindow(nullptr),
 	_audio_sample_rate(audio_sample_rate),
@@ -91,6 +92,8 @@ OSystem_Android::OSystem_Android(ANativeActivity* nativeActivity, int audio_samp
 	_fingersDown(0),
 	_trackball_scale(2),
 	_joystick_scale(10) {
+
+	// LOGI("%s", gScummVMFullVersion);
 
 	_fsFactory = new POSIXFilesystemFactory();
 
@@ -152,8 +155,7 @@ void *OSystem_Android::mainThreadFunc(void *arg) {
 
 	self->_mainThreadRunning = true;
 
-	JNIEnv *env = nullptr;
-	self->_nativeActivity->vm->AttachCurrentThread(&env, 0);
+	self->_jni->attachThread("ScummVM main thread");
 
 	scummvm_main(0, nullptr);
 
@@ -161,7 +163,7 @@ void *OSystem_Android::mainThreadFunc(void *arg) {
 
 	self->_mainThreadRunning = false;
 
-	self->_nativeActivity->vm->DetachCurrentThread();
+	self->_jni->detachThread();
 
 	return nullptr;
 }
@@ -176,16 +178,16 @@ void *OSystem_Android::timerThreadFunc(void *arg) {
 		LOGW("couldn't renice the timer thread");
 	}
 
-	JNI::attachThread();
+	system->_jni->attachThread("ScummVM timer thread");
 
 	struct timespec tv;
 	tv.tv_sec = 0;
 	tv.tv_nsec = 10 * 1000 * 1000; // 10ms
 
 	while (!system->_timer_thread_exit) {
-		if (JNI::pause) {
+		if (system->_jni->_pause) {
 			LOGD("timer thread going to sleep");
-			sem_wait(&JNI::pause_sem);
+			sem_wait(&system->_jni->_pause_sem);
 			LOGD("timer thread woke up");
 		}
 
@@ -193,20 +195,19 @@ void *OSystem_Android::timerThreadFunc(void *arg) {
 		nanosleep(&tv, 0);
 	}
 
-	JNI::detachThread();
+	system->_jni->detachThread();
 
 	return 0;
 }
 
 void *OSystem_Android::audioThreadFunc(void *arg) {
-	JNI::attachThread();
-
 	OSystem_Android *system = (OSystem_Android *)arg;
 	Audio::MixerImpl *mixer = system->_mixer;
 
 	uint buf_size = system->_audio_buffer_size;
 
-	JNIEnv *env = JNI::getEnv();
+	system->_jni->attachThread("ScummVM audio thread");
+	JNIEnv *env = system->_jni->getEnv();
 
 	jbyteArray bufa = env->NewByteArray(buf_size);
 
@@ -227,14 +228,14 @@ void *OSystem_Android::audioThreadFunc(void *arg) {
 	uint silence_count = 33;
 
 	while (!system->_audio_thread_exit) {
-		if (JNI::pause) {
-			JNI::setAudioStop();
+		if (system->_jni->_pause) {
+			system->_jni->setAudioStop();
 
 			paused = true;
 			silence_count = 33;
 
 			LOGD("audio thread going to sleep");
-			sem_wait(&JNI::pause_sem);
+			sem_wait(&system->_jni->_pause_sem);
 			LOGD("audio thread woke up");
 		}
 
@@ -269,7 +270,7 @@ void *OSystem_Android::audioThreadFunc(void *arg) {
 				if (!paused) {
 					LOGD("AudioTrack pause");
 
-					JNI::setAudioPause();
+					system->_jni->setAudioPause();
 					paused = true;
 				}
 
@@ -282,7 +283,7 @@ void *OSystem_Android::audioThreadFunc(void *arg) {
 		if (paused) {
 			LOGD("AudioTrack play");
 
-			JNI::setAudioPlay();
+			system->_jni->setAudioPlay();
 			paused = false;
 
 			silence_count = 0;
@@ -293,7 +294,7 @@ void *OSystem_Android::audioThreadFunc(void *arg) {
 		written = 0;
 
 		while (left > 0) {
-			written = JNI::writeAudio(env, bufa, offset, left);
+			written = system->_jni->writeAudio(env, bufa, offset, left);
 
 			if (written < 0) {
 				LOGE("AudioTrack error: %d", written);
@@ -314,11 +315,11 @@ void *OSystem_Android::audioThreadFunc(void *arg) {
 		// prepare the next buffer, and run into the blocking AudioTrack.write
 	}
 
-	JNI::setAudioStop();
+	system->_jni->setAudioStop();
 
 	env->DeleteLocalRef(bufa);
 
-	JNI::detachThread();
+	system->_jni->detachThread();
 
 	return 0;
 }
@@ -397,7 +398,7 @@ void OSystem_Android::initBackend() {
 	if (!ConfMan.hasKey("onscreen_control")) {
 		ConfMan.setBool("onscreen_control", true);
 	}
-	JNI::showKeyboardControl(ConfMan.getBool("onscreen_control"));
+	_jni->showKeyboardControl(ConfMan.getBool("onscreen_control"));
 
 	if (!ConfMan.hasKey("autosave_period")) {
 		ConfMan.setInt("autosave_period", 0);
@@ -465,7 +466,7 @@ void OSystem_Android::initBackend() {
 	if (setpriority(PRIO_PROCESS, 0, 19) < 0)
 		warning("couldn't renice the main thread");
 
-	JNI::setReadyForEvents(true);
+	_jni->setReadyForEvents(true);
 
 	_eventManager = new DefaultEventManager(this);
 	_audiocdManager = new DefaultAudioCDManager();
@@ -492,7 +493,7 @@ void OSystem_Android::setFeatureState(Feature f, bool enable) {
 	switch (f) {
 	case kFeatureVirtualKeyboard:
 		_virtkeybd_on = enable;
-		JNI::showVirtualKeyboard(enable);
+		_jni->showVirtualKeyboard(enable);
 		break;
 	case kFeatureTouchpadMode:
 		ConfMan.setBool("touchpad_mouse_mode", enable);
@@ -500,7 +501,7 @@ void OSystem_Android::setFeatureState(Feature f, bool enable) {
 		break;
 	case kFeatureOnScreenControl:
 		ConfMan.setBool("onscreen_control", enable);
-		JNI::showKeyboardControl(enable);
+		_jni->showKeyboardControl(enable);
 		break;
 	default:
 		ModularGraphicsBackend::setFeatureState(f, enable);
@@ -576,7 +577,7 @@ void OSystem_Android::delayMillis(uint msecs) {
 void OSystem_Android::quit() {
 	ENTER();
 
-	JNI::setReadyForEvents(false);
+	_jni->setReadyForEvents(false);
 
 	_audio_thread_exit = true;
 	pthread_join(_audio_thread, 0);
@@ -588,7 +589,7 @@ void OSystem_Android::quit() {
 void OSystem_Android::setWindowCaption(const char *caption) {
 	ENTER("%s", caption);
 
-	JNI::setWindowCaption(caption);
+	_jni->setWindowCaption(caption);
 }
 
 Audio::Mixer *OSystem_Android::getMixer() {
@@ -613,7 +614,7 @@ void OSystem_Android::getTimeAndDate(TimeDate &td) const {
 void OSystem_Android::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
 	ENTER("");
 
-	JNI::addSysArchivesToSearchSet(s, priority);
+	_jni->addSysArchivesToSearchSet(s, priority);
 }
 
 void OSystem_Android::logMessage(LogMessageType::Type type, const char *message) {
@@ -643,23 +644,23 @@ Common::String OSystem_Android::getSystemLanguage() const {
 }
 
 bool OSystem_Android::openUrl(const Common::String &url) {
-	return JNI::openUrl(url);
+	return _jni->openUrl(url);
 }
 
 bool OSystem_Android::hasTextInClipboard() {
-	return JNI::hasTextInClipboard();
+	return _jni->hasTextInClipboard();
 }
 
 Common::U32String OSystem_Android::getTextFromClipboard() {
-	return JNI::getTextFromClipboard();
+	return _jni->getTextFromClipboard();
 }
 
 bool OSystem_Android::setTextInClipboard(const Common::U32String &text) {
-	return JNI::setTextInClipboard(text);
+	return _jni->setTextInClipboard(text);
 }
 
 bool OSystem_Android::isConnectionLimited() {
-	return JNI::isConnectionLimited();
+	return _jni->isConnectionLimited();
 }
 
 Common::String OSystem_Android::getSystemProperty(const char *name) const {
@@ -671,7 +672,7 @@ Common::String OSystem_Android::getSystemProperty(const char *name) const {
 }
 
 char *OSystem_Android::convertEncoding(const char *to, const char *from, const char *string, size_t length) {
-	return JNI::convertEncoding(to, from, string, length);
+	return _jni->convertEncoding(to, from, string, length);
 }
 
 AndroidGraphicsManager *OSystem_Android::getAndroidGraphicsManager() const {
