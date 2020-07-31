@@ -25,6 +25,11 @@
 
 #if defined(__ANDROID__)
 
+#include <pthread.h>
+#include <android/native_activity.h>
+#include <android/native_window.h>
+#include <android/log.h>
+
 #include "backends/platform/android/portdefs.h"
 #include "common/fs.h"
 #include "common/archive.h"
@@ -35,9 +40,7 @@
 #include "backends/plugins/posix/posix-provider.h"
 #include "backends/fs/posix/posix-fs-factory.h"
 
-#include <pthread.h>
 
-#include <android/log.h>
 
 // toggles start
 //#define ANDROID_DEBUG_ENTER
@@ -50,6 +53,7 @@ extern const char *android_log_tag;
 #define LOGI(fmt, args...) _ANDROID_LOG(ANDROID_LOG_INFO, fmt, ##args)
 #define LOGW(fmt, args...) _ANDROID_LOG(ANDROID_LOG_WARN, fmt, ##args)
 #define LOGE(fmt, args...) _ANDROID_LOG(ANDROID_LOG_ERROR, fmt, ##args)
+#define LOGF(fmt, args...) _ANDROID_LOG(ANDROID_LOG_FATAL, fmt, ##args)
 
 #ifdef ANDROID_DEBUG_ENTER
 #define ENTER(fmt, args...) LOGD("%s(" fmt ")", __FUNCTION__, ##args)
@@ -57,15 +61,20 @@ extern const char *android_log_tag;
 #define ENTER(fmt, args...) do {  } while (false)
 #endif
 
+class AndroidGraphicsManager;
+
 class OSystem_Android : public ModularMutexBackend, public ModularGraphicsBackend, Common::EventSource {
 private:
+	ANativeActivity* _nativeActivity;
+	ANativeWindow *_waitingNativeWindow;
+
 	// passed from the dark side
 	int _audio_sample_rate;
 	int _audio_buffer_size;
 
-	int _screen_changeid;
-
-	pthread_t _main_thread;
+	bool _mainThreadRunning;
+	pthread_t _mainThread;
+	static void *mainThreadFunc(void *arg);
 
 	bool _timer_thread_exit;
 	pthread_t _timer_thread;
@@ -83,7 +92,7 @@ private:
 	Common::String getSystemProperty(const char *name) const;
 
 public:
-	OSystem_Android(int audio_sample_rate, int audio_buffer_size);
+	OSystem_Android(ANativeActivity* nativeActivity, int audio_sample_rate, int audio_buffer_size);
 	virtual ~OSystem_Android();
 
 	virtual void initBackend() override;
@@ -135,6 +144,12 @@ public:
 	virtual bool isConnectionLimited() override;
 	virtual Common::String getSystemLanguage() const override;
 	virtual char *convertEncoding(const char *to, const char *from, const char *string, size_t length) override;
+
+	AndroidGraphicsManager *getAndroidGraphicsManager() const;
+	void nativeWindowCreated(ANativeWindow* window);
+	void nativeWindowDestroyed(ANativeWindow* window);
+	void inputQueueCreated(AInputQueue* queue);
+	void inputQueueDestroyed(AInputQueue* queue);
 };
 
 #endif

@@ -47,6 +47,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "base/main.h"
+
 #include "common/util.h"
 #include "common/textconsole.h"
 #include "common/rect.h"
@@ -88,10 +90,12 @@ extern "C" {
 	}
 }
 
-OSystem_Android::OSystem_Android(int audio_sample_rate, int audio_buffer_size) :
+OSystem_Android::OSystem_Android(ANativeActivity* nativeActivity, int audio_sample_rate, int audio_buffer_size) :
+	_nativeActivity(nativeActivity),
+	_waitingNativeWindow(nullptr),
 	_audio_sample_rate(audio_sample_rate),
 	_audio_buffer_size(audio_buffer_size),
-	_screen_changeid(0),
+	_mainThreadRunning(false),
 	_mixer(0),
 	_queuedEventTime(0),
 	_event_queue_lock(0),
@@ -122,6 +126,17 @@ OSystem_Android::OSystem_Android(int audio_sample_rate, int audio_buffer_size) :
 
 OSystem_Android::~OSystem_Android() {
 	ENTER();
+
+	if (_mainThreadRunning) {
+		Common::Event quitEvent;
+		quitEvent.type = Common::EVENT_QUIT;
+		pushEvent(quitEvent);
+
+		pthread_join(_mainThread, nullptr);
+
+		_mainThreadRunning = false;
+	}
+
 	// _audiocdManager should be deleted before _mixer!
 	// It is normally deleted in proper order in the OSystem destructor.
 	// However, currently _mixer is deleted here (OSystem_Android)
@@ -134,10 +149,13 @@ OSystem_Android::~OSystem_Android() {
 	//	      - remove its deletion from OSystem_Android and ModularBackend (this is what needs to be fixed).
 	delete _audiocdManager;
 	_audiocdManager = 0;
+
 	delete _mixer;
 	_mixer = 0;
+
 	delete _fsFactory;
 	_fsFactory = 0;
+
 	delete _timerManager;
 	_timerManager = 0;
 
@@ -147,13 +165,36 @@ OSystem_Android::~OSystem_Android() {
 	_savefileManager = 0;
 }
 
+void *OSystem_Android::mainThreadFunc(void *arg) {
+	ENTER();
+
+	OSystem_Android *self = (OSystem_Android*)arg;
+
+	self->_mainThreadRunning = true;
+
+	JNIEnv *env = nullptr;
+	self->_nativeActivity->vm->AttachCurrentThread(&env, 0);
+
+	scummvm_main(0, nullptr);
+
+	self->quit();
+
+	self->_mainThreadRunning = false;
+
+	self->_nativeActivity->vm->DetachCurrentThread();
+
+	return nullptr;
+}
+
 void *OSystem_Android::timerThreadFunc(void *arg) {
 	OSystem_Android *system = (OSystem_Android *)arg;
 	DefaultTimerManager *timer = (DefaultTimerManager *)(system->_timerManager);
 
 	// renice this thread to boost the audio thread
 	if (setpriority(PRIO_PROCESS, 0, 19) < 0)
+	{
 		LOGW("couldn't renice the timer thread");
+	}
 
 	JNI::attachThread();
 
@@ -316,8 +357,6 @@ void *OSystem_Android::audioThreadFunc(void *arg) {
 void OSystem_Android::initBackend() {
 	ENTER();
 
-	_main_thread = pthread_self();
-
 	// Warning: ConfMan.registerDefault() can be used for a Session of ScummVM
 	//          but:
 	//              1. The values will NOT persist to storage
@@ -433,11 +472,14 @@ void OSystem_Android::initBackend() {
 
 	_timer_thread_exit = false;
 	pthread_create(&_timer_thread, 0, timerThreadFunc, this);
+	pthread_setname_np(_timer_thread, "ScummVM timer thread");
 
 	_audio_thread_exit = false;
 	pthread_create(&_audio_thread, 0, audioThreadFunc, this);
+	pthread_setname_np(_audio_thread, "ScummVM audio thread");
 
-	_graphicsManager = new AndroidGraphicsManager();
+	_graphicsManager = new AndroidGraphicsManager(this, _waitingNativeWindow);
+	_waitingNativeWindow = nullptr;
 
 	// renice this thread to boost the audio thread
 	if (setpriority(PRIO_PROCESS, 0, 19) < 0)
@@ -652,4 +694,33 @@ char *OSystem_Android::convertEncoding(const char *to, const char *from, const c
 	return JNI::convertEncoding(to, from, string, length);
 }
 
+AndroidGraphicsManager *OSystem_Android::getAndroidGraphicsManager() const {
+	return dynamic_cast<AndroidGraphicsManager *>(_graphicsManager);
+}
+
+void OSystem_Android::nativeWindowCreated(ANativeWindow* window) {
+	ENTER();
+	if (!_mainThreadRunning) {
+		_waitingNativeWindow = window;
+		pthread_create(&_mainThread, 0, mainThreadFunc, this);
+		pthread_setname_np(_mainThread, "ScummVM main thread");
+	} else {
+		// TODO: android - this would be nice to be executed in main thread
+		getAndroidGraphicsManager()->setNativeWindow(window);
+	}
+}
+
+void OSystem_Android::nativeWindowDestroyed(ANativeWindow* window) {
+	ENTER();
+	if (_mainThreadRunning) {
+		// TODO: android - this would be nice to be executed in main thread
+		getAndroidGraphicsManager()->setNativeWindow(nullptr);
+	}
+}
+
+void OSystem_Android::inputQueueCreated(AInputQueue* queue) {
+}
+
+void OSystem_Android::inputQueueDestroyed(AInputQueue* queue) {
+}
 #endif

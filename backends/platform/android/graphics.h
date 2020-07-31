@@ -26,13 +26,17 @@
 #include "common/scummsys.h"
 #include "backends/graphics/opengl/opengl-graphics.h"
 
+#include <EGL/egl.h>
+#include <android/native_window.h>
+
+class OSystem_Android;
+
 class AndroidGraphicsManager : public OpenGL::OpenGLGraphicsManager {
 public:
-	AndroidGraphicsManager();
+	AndroidGraphicsManager(OSystem_Android *system, ANativeWindow *nativeWindow);
 	virtual ~AndroidGraphicsManager();
 
-	void initSurface();
-	void deinitSurface();
+	void setNativeWindow(ANativeWindow *nativeWindow);
 
 	virtual void updateScreen() override;
 
@@ -49,6 +53,22 @@ protected:
 	virtual void refreshScreen() override;
 
 	virtual void *getProcAddress(const char *name) const override;
+
+private:
+	OSystem_Android *_system;
+
+	ANativeWindow *_nativeWindowCurrent;
+	ANativeWindow *_nativeWindowPending;
+
+	EGLDisplay _eglDisplay;
+	EGLContext _eglContext;
+	EGLSurface _eglSurface;
+	EGLConfig  _eglConfig;
+
+	void initEGLContext();
+	void destroyEGLContext();
+	void initEGLSurface(ANativeWindow *nativeWindow);
+	void destroyEGLSurface();
 
 };
 

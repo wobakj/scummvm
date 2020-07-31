@@ -452,41 +452,6 @@ char *JNI::convertEncoding(const char *to, const char *from, const char *string,
 	return buf;
 }
 
-bool JNI::initSurface() {
-	JNIEnv *env = JNI::getEnv();
-
-	jobject obj = env->CallObjectMethod(_jobj, _MID_initSurface);
-
-	if (!obj || env->ExceptionCheck()) {
-		LOGE("initSurface failed");
-
-		env->ExceptionDescribe();
-		env->ExceptionClear();
-
-		return false;
-	}
-
-	_jobj_egl_surface = env->NewGlobalRef(obj);
-
-	return true;
-}
-
-void JNI::deinitSurface() {
-	JNIEnv *env = JNI::getEnv();
-
-	env->CallVoidMethod(_jobj, _MID_deinitSurface);
-
-	if (env->ExceptionCheck()) {
-		LOGE("deinitSurface failed");
-
-		env->ExceptionDescribe();
-		env->ExceptionClear();
-	}
-
-	env->DeleteGlobalRef(_jobj_egl_surface);
-	_jobj_egl_surface = 0;
-}
-
 void JNI::setAudioPause() {
 	JNIEnv *env = JNI::getEnv();
 
@@ -551,8 +516,8 @@ void JNI::create(JNIEnv *env, jobject self, jobject asset_manager,
 	_asset_archive = new AndroidAssetArchive(asset_manager);
 	assert(_asset_archive);
 
-	_system = new OSystem_Android(audio_sample_rate, audio_buffer_size);
-	assert(_system);
+	// _system = new OSystem_Android(audio_sample_rate, audio_buffer_size);
+	// assert(_system);
 
 	// weak global ref to allow class to be unloaded
 	// ... except dalvik implements NewWeakGlobalRef only on froyo

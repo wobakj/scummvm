@@ -939,24 +939,7 @@ void OSystem_Android::pushEvent(int type, int arg1, int arg2, int arg3,
 bool OSystem_Android::pollEvent(Common::Event &event) {
 	//ENTER();
 
-	if (pthread_self() == _main_thread) {
-		if (_screen_changeid != JNI::surface_changeid) {
-			_screen_changeid = JNI::surface_changeid;
-
-			if (JNI::egl_surface_width > 0 && JNI::egl_surface_height > 0) {
-				// surface changed
-				dynamic_cast<AndroidGraphicsManager *>(_graphicsManager)->deinitSurface();
-				dynamic_cast<AndroidGraphicsManager *>(_graphicsManager)->initSurface();
-
-				event.type = Common::EVENT_SCREEN_CHANGED;
-
-				return true;
-			} else {
-				// surface lost
-				dynamic_cast<AndroidGraphicsManager *>(_graphicsManager)->deinitSurface();
-			}
-		}
-
+	if (pthread_self() == _mainThread) {
 		if (JNI::pause) {
 			LOGD("main thread going to sleep");
 			sem_wait(&JNI::pause_sem);

@@ -71,11 +71,6 @@ public:
 	static void addSysArchivesToSearchSet(Common::SearchSet &s, int priority);
 	static char *convertEncoding(const char *to, const char *from, const char *string, size_t length);
 
-	static inline bool haveSurface();
-	static inline bool swapBuffers();
-	static bool initSurface();
-	static void deinitSurface();
-
 	static void setAudioPause();
 	static void setAudioPlay();
 	static void setAudioStop();
@@ -147,17 +142,6 @@ private:
 
 	static PauseToken _pauseToken;
 };
-
-inline bool JNI::haveSurface() {
-	return _jobj_egl_surface != 0;
-}
-
-inline bool JNI::swapBuffers() {
-	JNIEnv *env = JNI::getEnv();
-
-	return env->CallBooleanMethod(_jobj_egl, _MID_EGL10_eglSwapBuffers,
-									_jobj_egl_display, _jobj_egl_surface);
-}
 
 inline int JNI::writeAudio(JNIEnv *env, jbyteArray &data, int offset, int size) {
 	return env->CallIntMethod(_jobj_audio_track, _MID_AudioTrack_write, data,

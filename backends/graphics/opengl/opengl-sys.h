@@ -60,6 +60,10 @@
 
 #ifdef __ANDROID__
 	#include <GLES/gl.h>
+	#include <GLES2/gl2.h>
+	// this is not in the gl spec, why are we using it like this?
+	typedef GLuint GLprogram;
+	typedef GLuint GLshader;
 	#define USE_BUILTIN_OPENGL
 #else
 	#include "backends/graphics/opengl/opengl-defs.h"

@@ -5260,8 +5260,8 @@ esac
 if test "$_opengl_mode" = auto ; then
 	case $_backend in
 		android)
-			# Android always runs in GLES mode
-			_opengl_mode=gles
+			# Android always runs in GLES2 mode
+			_opengl_mode=gles2
 			;;
 		sdl)
 			case $_sdlversion in
@@ -6083,7 +6083,7 @@ case $_host_os in
 		# -lgcc is carefully placed here - we want to catch
 		# all toolchain symbols in *our* libraries rather
 		# than pick up anything unhygenic from the Android libs.
-		LIBS="-Wl,-Bstatic $static_libs -Wl,-Bdynamic -lgcc $system_libs -llog -landroid -lGLESv1_CM"
+		LIBS="-Wl,-Bstatic $static_libs -Wl,-Bdynamic -lgcc $system_libs -llog -landroid -lGLESv1_CM -lEGL -lGLESv2"
 		;;
 	riscos)
 		append_var CXXFLAGS "-mno-poke-function-name"
