@@ -20,25 +20,10 @@
  *
  */
 
-#if defined(__ANDROID__)
+#include "backends/platform/android/jni-android.h"
 
-// Allow use of stuff in <time.h> and abort()
-#define FORBIDDEN_SYMBOL_EXCEPTION_time_h
-#define FORBIDDEN_SYMBOL_EXCEPTION_abort
-
-// Disable printf override in common/forbidden.h to avoid
-// clashes with log.h from the Android SDK.
-// That header file uses
-//   __attribute__ ((format(printf, 3, 4)))
-// which gets messed up by our override mechanism; this could
-// be avoided by either changing the Android SDK to use the equally
-// legal and valid
-//   __attribute__ ((format(printf, 3, 4)))
-// or by refining our printf override to use a varadic macro
-// (which then wouldn't be portable, though).
-// Anyway, for now we just disable the printf override globally
-// for the Android port
-#define FORBIDDEN_SYMBOL_EXCEPTION_printf
+#include "backends/platform/android/system.h"
+#include "backends/platform/android/asset-archive.h"
 
 #include "base/main.h"
 #include "base/version.h"
@@ -49,9 +34,6 @@
 #include "common/encoding.h"
 #include "engines/engine.h"
 
-#include "backends/platform/android/android.h"
-#include "backends/platform/android/asset-archive.h"
-#include "backends/platform/android/jni-android.h"
 
 __attribute__ ((visibility("default")))
 jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
@@ -765,6 +747,3 @@ Common::Array<Common::String> JNI::getAllStorageLocations() {
 
 	return *res;
 }
-
-
-#endif

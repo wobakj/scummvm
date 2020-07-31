@@ -20,19 +20,19 @@
  *
  */
 
-#ifndef _ANDROID_JNI_H_
-#define _ANDROID_JNI_H_
+#ifndef PLATFORM_ANDROID_JNI_H
+#define PLATFORM_ANDROID_JNI_H
 
-#if defined(__ANDROID__)
-
-#include <jni.h>
-#include <semaphore.h>
+#include "backends/platform/android/common.h"
 
 #include "common/fs.h"
 #include "common/archive.h"
 #include "common/array.h"
 #include "common/ustr.h"
 #include "engines/engine.h"
+
+#include <jni.h>
+#include <semaphore.h>
 
 class OSystem_Android;
 
@@ -148,5 +148,4 @@ inline int JNI::writeAudio(JNIEnv *env, jbyteArray &data, int offset, int size) 
 								offset, size);
 }
 
-#endif
 #endif

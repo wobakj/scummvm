@@ -20,10 +20,9 @@
  *
  */
 
+#include "backends/platform/android/system.h"
+
 #include <android/native_activity.h>
-
-#include "backends/platform/android/android.h"
-
 
 static void onDestroy(ANativeActivity* activity) {
     ENTER();

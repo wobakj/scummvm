@@ -20,8 +20,10 @@
  *
  */
 
-#ifndef ANDROID_GRAPHICS_H
-#define ANDROID_GRAPHICS_H
+#ifndef PLATFORM_ANDROID_GRAPHICS_H
+#define PLATFORM_ANDROID_GRAPHICS_H
+
+#include "backends/platform/android/common.h"
 
 #include "common/scummsys.h"
 #include "backends/graphics/opengl/opengl-graphics.h"

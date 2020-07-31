@@ -20,32 +20,10 @@
  *
  */
 
-#if defined(__ANDROID__)
+#include "backends/platform/android/system.h"
 
-#define FORBIDDEN_SYMBOL_EXCEPTION_getenv(a)
-
-// Allow use of stuff in <time.h>
-#define FORBIDDEN_SYMBOL_EXCEPTION_time_h
-
-// Disable printf override in common/forbidden.h to avoid
-// clashes with log.h from the Android SDK.
-// That header file uses
-//   __attribute__ ((format(printf, 3, 4)))
-// which gets messed up by our override mechanism; this could
-// be avoided by either changing the Android SDK to use the equally
-// legal and valid
-//   __attribute__ ((format(printf, 3, 4)))
-// or by refining our printf override to use a varadic macro
-// (which then wouldn't be portable, though).
-// Anyway, for now we just disable the printf override globally
-// for the Android port
-#define FORBIDDEN_SYMBOL_EXCEPTION_printf
-
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <sys/system_properties.h>
-#include <time.h>
-#include <unistd.h>
+#include "backends/platform/android/jni-android.h"
+#include "backends/platform/android/graphics.h"
 
 #include "base/main.h"
 
@@ -67,9 +45,11 @@
 #include "backends/keymapper/keymapper-defaults.h"
 #include "backends/keymapper/standard-actions.h"
 
-#include "backends/platform/android/jni-android.h"
-#include "backends/platform/android/android.h"
-#include "backends/platform/android/graphics.h"
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <sys/system_properties.h>
+#include <time.h>
+#include <unistd.h>
 
 const char *android_log_tag = "ScummVM";
 
@@ -723,4 +703,3 @@ void OSystem_Android::inputQueueCreated(AInputQueue* queue) {
 
 void OSystem_Android::inputQueueDestroyed(AInputQueue* queue) {
 }
-#endif

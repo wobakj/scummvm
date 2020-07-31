@@ -3,7 +3,7 @@ MODULE := backends/platform/android
 MODULE_OBJS := \
 	jni-android.o \
 	asset-archive.o \
-	android.o \
+	system.o \
 	graphics.o \
 	events.o \
 	native-activity.o \

@@ -20,15 +20,10 @@
  *
  */
 
-#ifndef _ANDROID_H_
-#define _ANDROID_H_
+#ifndef PLATFORM_ANDROID_SYSTEM_H
+#define PLATFORM_ANDROID_SYSTEM_H
 
-#if defined(__ANDROID__)
-
-#include <pthread.h>
-#include <android/native_activity.h>
-#include <android/native_window.h>
-#include <android/log.h>
+#include "backends/platform/android/common.h"
 
 #include "backends/platform/android/portdefs.h"
 #include "common/fs.h"
@@ -40,26 +35,10 @@
 #include "backends/plugins/posix/posix-provider.h"
 #include "backends/fs/posix/posix-fs-factory.h"
 
-
-
-// toggles start
-//#define ANDROID_DEBUG_ENTER
-// toggles end
-
-extern const char *android_log_tag;
-
-#define _ANDROID_LOG(prio, fmt, args...) __android_log_print(prio, android_log_tag, fmt, ## args)
-#define LOGD(fmt, args...) _ANDROID_LOG(ANDROID_LOG_DEBUG, fmt, ##args)
-#define LOGI(fmt, args...) _ANDROID_LOG(ANDROID_LOG_INFO, fmt, ##args)
-#define LOGW(fmt, args...) _ANDROID_LOG(ANDROID_LOG_WARN, fmt, ##args)
-#define LOGE(fmt, args...) _ANDROID_LOG(ANDROID_LOG_ERROR, fmt, ##args)
-#define LOGF(fmt, args...) _ANDROID_LOG(ANDROID_LOG_FATAL, fmt, ##args)
-
-#ifdef ANDROID_DEBUG_ENTER
-#define ENTER(fmt, args...) LOGD("%s(" fmt ")", __FUNCTION__, ##args)
-#else
-#define ENTER(fmt, args...) do {  } while (false)
-#endif
+#include <pthread.h>
+#include <android/native_activity.h>
+#include <android/native_window.h>
+#include <android/log.h>
 
 class AndroidGraphicsManager;
 
@@ -152,5 +131,4 @@ public:
 	void inputQueueDestroyed(AInputQueue* queue);
 };
 
-#endif
 #endif

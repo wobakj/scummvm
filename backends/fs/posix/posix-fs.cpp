@@ -31,6 +31,7 @@
 #define FORBIDDEN_SYMBOL_EXCEPTION_exit		//Needed for IRIX's unistd.h
 #define FORBIDDEN_SYMBOL_EXCEPTION_random
 #define FORBIDDEN_SYMBOL_EXCEPTION_srandom
+#define FORBIDDEN_SYMBOL_EXCEPTION_printf	// Needed for Android's logging
 
 #include "backends/fs/posix/posix-fs.h"
 #include "backends/fs/posix/posix-iostream.h"

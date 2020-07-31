@@ -20,18 +20,17 @@
  *
  */
 
-#ifndef _ANDROID_ASSET_H_
-#define _ANDROID_ASSET_H_
+#ifndef PLATFORM_ANDROID_ASSET_H
+#define PLATFORM_ANDROID_ASSET_H
 
-#if defined(__ANDROID__)
-
-#include <jni.h>
+#include "backends/platform/android/common.h"
 
 #include "common/str.h"
 #include "common/stream.h"
 #include "common/util.h"
 #include "common/archive.h"
 
+#include <jni.h>
 #include <android/asset_manager.h>
 
 class AndroidAssetArchive : public Common::Archive {
@@ -50,5 +49,4 @@ private:
 	mutable bool _hasCached;
 };
 
-#endif
 #endif

@@ -20,10 +20,9 @@
  *
  */
 
-#if defined(__ANDROID__)
+#include "backends/platform/android/asset-archive.h"
 
-#include <sys/types.h>
-#include <unistd.h>
+#include "backends/platform/android/jni-android.h"
 
 #include "common/str.h"
 #include "common/stream.h"
@@ -31,9 +30,6 @@
 #include "common/archive.h"
 #include "common/debug.h"
 #include "common/textconsole.h"
-
-#include "backends/platform/android/jni-android.h"
-#include "backends/platform/android/asset-archive.h"
 
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
@@ -158,5 +154,3 @@ Common::SeekableReadStream *AndroidAssetArchive::createReadStreamForMember(const
 	}
 	return new AssetInputStream(_am, path);
 }
-
-#endif
