@@ -1,8 +1,11 @@
 package org.scummvm.scummvm;
 
 import android.app.NativeActivity;
+import android.content.Context;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.view.inputmethod.InputMethodManager;
+import android.view.KeyEvent;
 import android.view.View;
 
 import java.io.File;
@@ -38,4 +41,6 @@ public class ScummVMNativeActivity extends NativeActivity {
         values[0] = metrics.xdpi;
         values[1] = metrics.ydpi;
     }
+
+    public native void pushEvent(int type, int customType);
 }

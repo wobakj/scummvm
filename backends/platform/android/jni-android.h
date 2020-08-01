@@ -52,8 +52,6 @@ public:
 	void attachThread(const char* threadName);
 	void detachThread();
 
-	void setReadyForEvents(bool ready);
-
 	void setWindowCaption(const Common::String &caption);
 	void getDPI(float *values);
 	void displayMessageOnOSD(const Common::U32String &msg);
@@ -75,6 +73,7 @@ public:
 									int size);
 
 	Common::Array<Common::String> getAllStorageLocations();
+	void finish();
 
 private:
 	OSystem_Android *_system;
@@ -85,8 +84,6 @@ private:
 	jobject _jobj_audio_track;
 
 	Common::Archive *_asset_archive;
-
-	bool _ready_for_events;
 
 	jmethodID _MID_getDPI;
 	jmethodID _MID_displayMessageOnOSD;
@@ -101,6 +98,7 @@ private:
 	jmethodID _MID_getSysArchives;
 	jmethodID _MID_convertEncoding;
 	jmethodID _MID_getAllStorageLocations;
+	jmethodID _MID_finish;
 
 	jmethodID _MID_AudioTrack_flush;
 	jmethodID _MID_AudioTrack_pause;
@@ -116,8 +114,7 @@ private:
 
 	static const JNINativeMethod _natives[];
 
-	static void pushEvent(JNIEnv *env, jobject self, int type, int arg1,
-							int arg2, int arg3, int arg4, int arg5, int arg6);
+	static void pushEvent(int type, int customType);
 	static void setPause(JNIEnv *env, jobject self, jboolean value);
 
 	jstring convertToJString(JNIEnv *env, const Common::String &str, const Common::String &from);

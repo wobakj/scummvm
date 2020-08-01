@@ -25,15 +25,13 @@
 
 #include "backends/platform/android/common.h"
 
-#include "backends/platform/android/portdefs.h"
-#include "common/fs.h"
-#include "common/archive.h"
-#include "common/mutex.h"
-#include "common/ustr.h"
 #include "audio/mixer_intern.h"
-#include "backends/modular-backend.h"
-#include "backends/plugins/posix/posix-provider.h"
 #include "backends/fs/posix/posix-fs-factory.h"
+#include "backends/modular-backend.h"
+#include "backends/platform/android/portdefs.h"
+#include "backends/plugins/posix/posix-provider.h"
+#include "common/archive.h"
+#include "common/fs.h"
 
 #include <pthread.h>
 #include <android/native_activity.h>
@@ -41,16 +39,18 @@
 #include <android/log.h>
 
 class AndroidGraphicsManager;
+class AndroidEventSource;
 class JNI;
 
-class OSystem_Android : public ModularMutexBackend, public ModularGraphicsBackend, Common::EventSource {
+class OSystem_Android : public ModularMutexBackend, public ModularGraphicsBackend {
 public:
 	JNI* _jni;
+	ANativeActivity* _nativeActivity;
+	AndroidEventSource *_eventSource;
 
 private:
-	ANativeActivity* _nativeActivity;
-
 	ANativeWindow *_waitingNativeWindow;
+	AInputQueue *_waitingInputQueue;
 
 	// passed from the dark side
 	int _audio_sample_rate;
@@ -85,15 +85,7 @@ public:
 	virtual void setFeatureState(OSystem::Feature f, bool enable) override;
 	virtual bool getFeatureState(OSystem::Feature f) override;
 
-public:
-	void pushEvent(int type, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6);
-
 private:
-	Common::Queue<Common::Event> _event_queue;
-	Common::Event _queuedEvent;
-	uint32 _queuedEventTime;
-	Common::Mutex *_event_queue_lock;
-
 	Common::Point _touch_pt_down, _touch_pt_scroll, _touch_pt_dt;
 	int _eventScaleX;
 	int _eventScaleY;
@@ -107,7 +99,6 @@ private:
 	void pushEvent(const Common::Event &event);
 
 public:
-	virtual bool pollEvent(Common::Event &event) override;
 	virtual Common::KeymapperDefaultBindings *getKeymapperDefaultBindings() override;
 
 	virtual uint32 getMillis(bool skipRecord = false) override;

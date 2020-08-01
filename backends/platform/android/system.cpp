@@ -22,8 +22,9 @@
 
 #include "backends/platform/android/system.h"
 
-#include "backends/platform/android/jni-android.h"
+#include "backends/platform/android/events.h"
 #include "backends/platform/android/graphics.h"
+#include "backends/platform/android/jni-android.h"
 
 #include "base/main.h"
 
@@ -73,13 +74,13 @@ extern "C" {
 OSystem_Android::OSystem_Android(ANativeActivity* nativeActivity, int audio_sample_rate, int audio_buffer_size) :
 	_jni(new JNI(this, nativeActivity)),
 	_nativeActivity(nativeActivity),
+	_eventSource(nullptr),
 	_waitingNativeWindow(nullptr),
+	_waitingInputQueue(nullptr),
 	_audio_sample_rate(audio_sample_rate),
 	_audio_buffer_size(audio_buffer_size),
 	_mainThreadRunning(false),
 	_mixer(0),
-	_queuedEventTime(0),
-	_event_queue_lock(0),
 	_touch_pt_down(),
 	_touch_pt_scroll(),
 	_touch_pt_dt(),
@@ -113,7 +114,7 @@ OSystem_Android::~OSystem_Android() {
 	if (_mainThreadRunning) {
 		Common::Event quitEvent;
 		quitEvent.type = Common::EVENT_QUIT;
-		pushEvent(quitEvent);
+		_eventSource->pushEvent(quitEvent);
 
 		pthread_join(_mainThread, nullptr);
 
@@ -131,18 +132,16 @@ OSystem_Android::~OSystem_Android() {
 	//        - delete _mixer in the base class (OSystem) after _audiocdManager (this is already the current behavior)
 	//	      - remove its deletion from OSystem_Android and ModularBackend (this is what needs to be fixed).
 	delete _audiocdManager;
-	_audiocdManager = 0;
+	_audiocdManager = nullptr;
 
 	delete _mixer;
-	_mixer = 0;
+	_mixer = nullptr;
 
 	delete _fsFactory;
 	_fsFactory = 0;
 
 	delete _timerManager;
 	_timerManager = 0;
-
-	delete _event_queue_lock;
 
 	delete _savefileManager;
 	_savefileManager = 0;
@@ -444,8 +443,6 @@ void OSystem_Android::initBackend() {
 	_mutexManager = new PthreadMutexManager();
 	_timerManager = new DefaultTimerManager();
 
-	_event_queue_lock = new Common::Mutex();
-
 	gettimeofday(&_startTime, 0);
 
 	_mixer = new Audio::MixerImpl(_audio_sample_rate);
@@ -462,15 +459,18 @@ void OSystem_Android::initBackend() {
 	_graphicsManager = new AndroidGraphicsManager(this, _waitingNativeWindow);
 	_waitingNativeWindow = nullptr;
 
+	_eventSource = new AndroidEventSource(this);
+	if (_waitingInputQueue) {
+		_eventSource->inputQueueCreated(_waitingInputQueue);
+		_waitingInputQueue = nullptr;
+	}
+	_eventManager = new DefaultEventManager(_eventSource);
+
 	// renice this thread to boost the audio thread
 	if (setpriority(PRIO_PROCESS, 0, 19) < 0)
 		warning("couldn't renice the main thread");
 
-	_jni->setReadyForEvents(true);
-
-	_eventManager = new DefaultEventManager(this);
 	_audiocdManager = new DefaultAudioCDManager();
-
 	BaseBackend::initBackend();
 }
 
@@ -577,13 +577,18 @@ void OSystem_Android::delayMillis(uint msecs) {
 void OSystem_Android::quit() {
 	ENTER();
 
-	_jni->setReadyForEvents(false);
-
 	_audio_thread_exit = true;
 	pthread_join(_audio_thread, 0);
 
 	_timer_thread_exit = true;
 	pthread_join(_timer_thread, 0);
+
+	// Has to be destroyed in same thread as it was created.
+	delete _eventSource;
+	_eventSource = nullptr;
+
+	// Tell the native activity to finish, this will trigger OSystem_Android->destroy() via onDestroy event on native activity.
+	_jni->finish();
 }
 
 void OSystem_Android::setWindowCaption(const char *caption) {
@@ -700,7 +705,23 @@ void OSystem_Android::nativeWindowDestroyed(ANativeWindow* window) {
 }
 
 void OSystem_Android::inputQueueCreated(AInputQueue* queue) {
+	ENTER();
+	if (!_mainThreadRunning) {
+		_waitingInputQueue = queue;
+	} else {
+		// TODO: android - this has to go through looper as it needs to be executed in thread where Looper was created
+		_eventSource->inputQueueCreated(queue);
+	}
 }
 
 void OSystem_Android::inputQueueDestroyed(AInputQueue* queue) {
+	ENTER();
+	if (!_mainThreadRunning) {
+		if (_waitingInputQueue == queue) {
+			_waitingInputQueue = nullptr;
+		}
+	} else {
+		// TODO: android - this has to go through looper as it needs to be executed in thread where Looper was created
+		_eventSource->inputQueueDestroyed(queue);
+	}
 }

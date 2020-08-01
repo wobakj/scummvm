@@ -22,8 +22,9 @@
 
 #include "backends/platform/android/jni-android.h"
 
-#include "backends/platform/android/system.h"
 #include "backends/platform/android/asset-archive.h"
+#include "backends/platform/android/events.h"
+#include "backends/platform/android/system.h"
 
 #include "base/main.h"
 #include "base/version.h"
@@ -36,7 +37,7 @@
 
 
 const JNINativeMethod JNI::_natives[] = {
-	{ "pushEvent", "(IIIIIII)V",
+	{ "pushEvent", "(II)V",
 		(void *)JNI::pushEvent },
 	{ "setPause", "(Z)V",
 		(void *)JNI::setPause }
@@ -49,7 +50,6 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	_instance(_activity->clazz),
 	_jobj_audio_track(nullptr),
 	_asset_archive(nullptr),
-	_ready_for_events(false),
 	_MID_getDPI(nullptr),
 	_MID_displayMessageOnOSD(nullptr),
 	_MID_openUrl(nullptr),
@@ -63,6 +63,7 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	_MID_getSysArchives(nullptr),
 	_MID_convertEncoding(nullptr),
 	_MID_getAllStorageLocations(nullptr),
+	_MID_finish(nullptr),
 	_MID_AudioTrack_flush(nullptr),
 	_MID_AudioTrack_pause(nullptr),
 	_MID_AudioTrack_play(nullptr),
@@ -102,6 +103,7 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	FIND_METHOD(, getSysArchives, "()[Ljava/lang/String;");
 	FIND_METHOD(, getAllStorageLocations, "()[Ljava/lang/String;");
 	FIND_METHOD(, convertEncoding, "(Ljava/lang/String;Ljava/lang/String;[B)[B");
+	FIND_METHOD(, finish, "()V");
 
 	// _jobj_audio_track = env->NewGlobalRef(at);
 
@@ -144,10 +146,6 @@ void JNI::attachThread(const char* threadName) {
 
 void JNI::detachThread() {
 	_activity->vm->DetachCurrentThread();
-}
-
-void JNI::setReadyForEvents(bool ready) {
-	_ready_for_events = ready;
 }
 
 void JNI::throwByName(JNIEnv *env, const char *name, const char *msg) {
@@ -471,18 +469,14 @@ void JNI::setAudioStop() {
 
 // natives for the dark side
 
-void JNI::pushEvent(JNIEnv *env, jobject self, int type, int arg1, int arg2,
-					int arg3, int arg4, int arg5, int arg6) {
+void JNI::pushEvent(int type, int customType) {
 	OSystem_Android *system = dynamic_cast<OSystem_Android *>(g_system);
 	assert(system);
 
-	// drop events until we're ready and after we quit
-	if (!system->_jni->_ready_for_events) {
-		LOGW("dropping event");
-		return;
-	}
-
-	system->pushEvent(type, arg1, arg2, arg3, arg4, arg5, arg6);
+	Common::Event event;
+	event.type = (Common::EventType)type;
+	event.customType = (Common::CustomEventType)customType;
+	system->_eventSource->pushEvent(event);
 }
 
 void JNI::setPause(JNIEnv *env, jobject self, jboolean value) {
@@ -570,4 +564,9 @@ Common::Array<Common::String> JNI::getAllStorageLocations() {
 	}
 
 	return *res;
+}
+
+void JNI::finish() {
+	JNIEnv *env = getEnv();
+	env->CallVoidMethod(_instance, _MID_finish);
 }
