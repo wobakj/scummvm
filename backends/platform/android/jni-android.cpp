@@ -64,6 +64,7 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	_MID_convertEncoding(nullptr),
 	_MID_getAllStorageLocations(nullptr),
 	_MID_finish(nullptr),
+	_MID_stringFromKeyCode(nullptr),
 	_MID_AudioTrack_flush(nullptr),
 	_MID_AudioTrack_pause(nullptr),
 	_MID_AudioTrack_play(nullptr),
@@ -104,6 +105,7 @@ JNI::JNI(OSystem_Android *system, ANativeActivity *activity):
 	FIND_METHOD(, getAllStorageLocations, "()[Ljava/lang/String;");
 	FIND_METHOD(, convertEncoding, "(Ljava/lang/String;Ljava/lang/String;[B)[B");
 	FIND_METHOD(, finish, "()V");
+	FIND_METHOD(, stringFromKeyCode, "(JJIIIIIIII)Ljava/lang/String;");
 
 	// _jobj_audio_track = env->NewGlobalRef(at);
 
@@ -569,4 +571,20 @@ Common::Array<Common::String> JNI::getAllStorageLocations() {
 void JNI::finish() {
 	JNIEnv *env = getEnv();
 	env->CallVoidMethod(_instance, _MID_finish);
+}
+
+Common::String JNI::stringFromKeyCode(AInputEvent* event) {
+    JNIEnv *env = JNI::getEnv();
+
+	jstring jKeyCodeString = (jstring)env->CallObjectMethod(_instance, _MID_stringFromKeyCode, AKeyEvent_getDownTime(event), AKeyEvent_getEventTime(event), AKeyEvent_getAction(event), AKeyEvent_getKeyCode(event), AKeyEvent_getRepeatCount(event), AKeyEvent_getMetaState(event), AInputEvent_getDeviceId(event), AKeyEvent_getScanCode(event), AKeyEvent_getFlags(event), AInputEvent_getSource(event));
+
+	if (jKeyCodeString == nullptr) {
+		return Common::String();
+	}
+
+	const char* keyCodeString = env->GetStringUTFChars(jKeyCodeString, nullptr);
+	Common::String strReturn (keyCodeString);
+	env->ReleaseStringUTFChars(jKeyCodeString, keyCodeString);
+
+	return strReturn;
 }

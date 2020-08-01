@@ -74,6 +74,7 @@ public:
 
 	Common::Array<Common::String> getAllStorageLocations();
 	void finish();
+	Common::String stringFromKeyCode(AInputEvent* pInputEvent);
 
 private:
 	OSystem_Android *_system;
@@ -99,6 +100,7 @@ private:
 	jmethodID _MID_convertEncoding;
 	jmethodID _MID_getAllStorageLocations;
 	jmethodID _MID_finish;
+	jmethodID _MID_stringFromKeyCode;
 
 	jmethodID _MID_AudioTrack_flush;
 	jmethodID _MID_AudioTrack_pause;

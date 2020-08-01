@@ -43,4 +43,32 @@ public class ScummVMNativeActivity extends NativeActivity {
     }
 
     public native void pushEvent(int type, int customType);
+
+    public void showVirtualKeyboard(boolean enable) {
+        InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (enable) {
+            imm.showSoftInput(this.getWindow().getDecorView(), InputMethodManager.SHOW_FORCED);
+        } else {
+            imm.hideSoftInputFromWindow(this.getWindow().getDecorView().getWindowToken(), 0);
+        }
+    }
+
+    public String stringFromKeyCode(long downTime, long eventTime, int eventAction, int keyCode, int repeatCount, int metaState, int deviceId, int scanCode, int flags, int source){
+        String strReturn;
+
+        KeyEvent keyEvent = new KeyEvent(downTime, eventTime, eventAction, keyCode, repeatCount, metaState, deviceId, scanCode, flags, source);
+
+        if (metaState == 0) {
+            int unicodeChar = keyEvent.getUnicodeChar();
+            if (eventAction == KeyEvent.ACTION_MULTIPLE && unicodeChar == keyEvent.KEYCODE_UNKNOWN) {
+                strReturn = keyEvent.getCharacters();
+            } else {
+                strReturn = Character.toString((char)unicodeChar);
+            }
+        } else {
+            strReturn = Character.toString((char)(keyEvent.getUnicodeChar(metaState)));
+        }
+
+        return strReturn;
+    }
 }

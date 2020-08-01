@@ -50,6 +50,10 @@ public:
 
 	void inputQueueCreated(AInputQueue* queue);
 	void inputQueueDestroyed(AInputQueue* queue);
+
+private:
+	bool processKeyEvent(AInputEvent *e, Common::Event &event);
+	bool processMotionEvent(AInputEvent *e, Common::Event &event);
 };
 
 #endif
