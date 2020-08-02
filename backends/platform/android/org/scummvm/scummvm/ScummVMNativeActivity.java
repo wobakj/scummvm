@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,13 +81,39 @@ public class ScummVMNativeActivity extends NativeActivity {
     }
 
     public native void pushEvent(int type, int customType);
+    public native void setPause(boolean pause);
 
-    protected void getDPI(float[] values) {
+    public void setWindowCaption(String name) {
+    }
+
+    public void getDPI(float[] values) {
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
         values[0] = metrics.xdpi;
         values[1] = metrics.ydpi;
+    }
+
+    public void displayMessageOnOSD(String name) {
+    }
+
+    public void openUrl(String name) {
+    }
+
+    public boolean hasTextInClipboard() {
+        return false;
+    }
+
+    public String getTextFromClipboard() {
+        return "";
+    }
+
+    public boolean setTextInClipboard(String name) {
+        return false;
+    }
+
+    public boolean isConnectionLimited() {
+        return false;
     }
 
     public void showVirtualKeyboard(boolean enable) {
@@ -98,26 +125,14 @@ public class ScummVMNativeActivity extends NativeActivity {
         }
     }
 
-    public String stringFromKeyCode(long downTime, long eventTime, int eventAction, int keyCode, int repeatCount, int metaState, int deviceId, int scanCode, int flags, int source){
-        String strReturn;
-
-        KeyEvent keyEvent = new KeyEvent(downTime, eventTime, eventAction, keyCode, repeatCount, metaState, deviceId, scanCode, flags, source);
-
-        if (metaState == 0) {
-            int unicodeChar = keyEvent.getUnicodeChar();
-            if (eventAction == KeyEvent.ACTION_MULTIPLE && unicodeChar == keyEvent.KEYCODE_UNKNOWN) {
-                strReturn = keyEvent.getCharacters();
-            } else {
-                strReturn = Character.toString((char)unicodeChar);
-            }
-        } else {
-            strReturn = Character.toString((char)(keyEvent.getUnicodeChar(metaState)));
-        }
-
-        return strReturn;
+    public void showKeyboardControl(boolean enable) {
     }
 
-    public String[] getAllStorageLocations() {
+    public String[] getSysArchives() {
+        return new String[0];
+    }
+
+     public String[] getAllStorageLocations() {
         List<String> locations = new ArrayList<>();
 
         if (Build.VERSION.SDK_INT < 19) {
@@ -144,8 +159,29 @@ public class ScummVMNativeActivity extends NativeActivity {
         //     return _externalStorage.getAllStorageLocations().toArray(new String[0]);
         // }
         // return new String[0]; // an array of zero length
-
-
     }
 
+    public byte[] convertEncoding(String to, String from, byte[] string) throws UnsupportedEncodingException {
+        String str = new String(string, from);
+        return str.getBytes(to);
+    }
+
+    public String stringFromKeyCode(long downTime, long eventTime, int eventAction, int keyCode, int repeatCount, int metaState, int deviceId, int scanCode, int flags, int source){
+        String strReturn;
+
+        KeyEvent keyEvent = new KeyEvent(downTime, eventTime, eventAction, keyCode, repeatCount, metaState, deviceId, scanCode, flags, source);
+
+        if (metaState == 0) {
+            int unicodeChar = keyEvent.getUnicodeChar();
+            if (eventAction == KeyEvent.ACTION_MULTIPLE && unicodeChar == keyEvent.KEYCODE_UNKNOWN) {
+                strReturn = keyEvent.getCharacters();
+            } else {
+                strReturn = Character.toString((char)unicodeChar);
+            }
+        } else {
+            strReturn = Character.toString((char)(keyEvent.getUnicodeChar(metaState)));
+        }
+
+        return strReturn;
+    }
 }
