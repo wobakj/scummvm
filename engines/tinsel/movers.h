@@ -54,9 +54,9 @@ struct MOVER {
 	int     ItargetX, ItargetY;     /* Intermediate destination */
 	int     UtargetX, UtargetY;     /* Ultimate destination */
 
-	HPOLYGON hIpath;
-	HPOLYGON hUpath;
-	HPOLYGON hCpath;
+	HPOLYGON hIpath;	/* Intermediate path */
+	HPOLYGON hUpath;	/* Ultimate path */
+	HPOLYGON hCpath;	/* Current path */
 
 	bool over;
 	int	walkNumber;
@@ -188,6 +188,10 @@ bool IsMAinEffectPoly(int index);
 void SetMoverInEffect(int index, bool tf);
 
 void StopMover(MOVER *pMover);
+
+/*----------------------------------------------------------------------*/
+
+void Declare3D(int ano, SCNHANDLE hModelName, SCNHANDLE hTextureName);
 
 /*----------------------------------------------------------------------*/
 

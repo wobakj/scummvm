@@ -55,6 +55,7 @@
 #include "tinsel/savescn.h"
 #include "tinsel/scn.h"
 #include "tinsel/sound.h"
+#include "tinsel/spriter.h"
 #include "tinsel/strres.h"
 #include "tinsel/sysvar.h"
 #include "tinsel/timers.h"
@@ -1023,6 +1024,7 @@ Common::Error TinselEngine::run() {
 		initGraphics(width, height, &noirFormat);
 
 		_screenSurface.create(width, 432, noirFormat);
+		InitSpriter(640, 432);
 	} else if (getGameID() == GID_DW2) {
 #ifndef DW2_EXACT_SIZE
 		initGraphics(640, 480);
