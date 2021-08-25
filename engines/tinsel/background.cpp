@@ -30,6 +30,9 @@
 #include "tinsel/pid.h"	// process identifiers
 #include "tinsel/tinsel.h"
 
+// TODO(peterkohaut) remove
+// #include "tinsel/polygons.h"
+
 namespace Tinsel {
 
 Background::Background(Font* font) : _font(font), _pCurBgnd(nullptr), _hBgPal(0), _BGspeed(0), _hBackground(0), _bDoFadeIn(false), _bgReels(0) {
@@ -241,6 +244,9 @@ void Background::DrawBackgnd() {
 		// transfer any new palettes to the video DAC
 		PalettesToVideoDAC();
 	}
+
+	//TODO(peterkohaut) remove
+	// drawpolys();
 
 	// update the screen within the clipping rectangles
 	for (RectList::const_iterator r = clipRects.begin(); r != clipRects.end(); ++r) {
