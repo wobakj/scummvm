@@ -40,6 +40,7 @@ MODULE_OBJS := \
 	scn.o \
 	scroll.o \
 	sound.o \
+	spriter.o \
 	strres.o \
 	sysvar.o \
 	text.o \

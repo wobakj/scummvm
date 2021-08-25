@@ -38,6 +38,7 @@
 #include "tinsel/polygons.h"
 #include "tinsel/movers.h"
 #include "tinsel/sched.h"
+#include "tinsel/spriter.h"
 #include "tinsel/sysvar.h"
 #include "tinsel/timers.h"
 #include "tinsel/tinsel.h"
@@ -254,10 +255,13 @@ bool MoverHidden(PMOVER pMover) {
  * To be or not to be? If it be, then it is.
  */
 bool MoverIs(PMOVER pMover) {
-	if (TinselV2)
+	if (TinselV3 && pMover->type == MOVER_3D) {
+		return pMover->bIsValid;
+	} else if (TinselV3 || TinselV2) {
 		return pMover->actorObj ? true : false;
-	else
+	} else {
 		return getMActorState(pMover);
+	}
 }
 
 /**
@@ -885,13 +889,45 @@ void T3MoverProcess(CORO_PARAM, const void *param) {
 	// Get the co-ordinates - copied to process when it was created
 	const MAINIT *rpos = (const MAINIT *)param;
 	PMOVER pMover = rpos->pMover;
+	MULTI_INIT mi;
 
 	CORO_BEGIN_CODE(_ctx);
 
-	warning("TODO: Finish implementation of T3MoverProcess() for Noir");
-
 	InitMover(pMover);
 	InitialPathChecks(pMover, rpos->X, rpos->Y);
+
+	if (pMover->type == MOVER_3D) {
+		assert(pMover->hModelName != 0);
+
+		pMover->bIsValid = 1;
+
+		mi.hMulFrame = 0;
+		mi.mulID = 0;
+		mi.mulX = 0;
+		mi.mulY = 0;
+		mi.mulZ = 0;
+		mi.otherFlags = 0;
+		mi.mulFlags = DMA_3D;
+
+		pMover->actorObj = MultiInitObject(&mi);
+
+		MultiInsertObject(_vm->_bg->GetPlayfieldList(FIELD_WORLD),pMover->actorObj);
+		MultiSetAniXY(pMover->actorObj,pMover->objX,pMover->objY);
+
+		warning("TODO: Finish implementation of T3MoverProcess() for Noir");
+		// FlagChanged(pMover->actorObj);
+
+		// ::spriter::SetSeq(0,4);
+
+		// pMover->tDelta = 0x10000;
+		// pMover->nextIdleAnim = 0;
+	}
+
+	// If no path, just use first path in the scene
+	if (pMover->hCpath != NOPOLY)
+		SetMoverZ(pMover, pMover->objY, GetPolyZfactor(pMover->hCpath));
+	else
+		SetMoverZ(pMover, pMover->objY, GetPolyZfactor(FirstPathPoly()));
 
 	HideMover(pMover);		// Allows a play to come in before this appears
 	pMover->bHidden = false;	// ...but don't stay hidden
@@ -1023,6 +1059,35 @@ PMOVER NextMover(PMOVER pMover) {
 void StopMover(PMOVER pMover) {
 	pMover->bStop = true;
 	DoMoveActor(pMover);
+}
+
+void Declare3D(int ano, SCNHANDLE hModelName, SCNHANDLE hTextureName)
+{
+	static SCNHANDLE hModelNameLoaded = 0;
+	PMOVER pMover = GetMover(ano);
+	assert(pMover != nullptr);
+	//assert(pMover->type != MOVER_2D);
+
+	pMover->type = MOVER_3D;
+	pMover->hModelName = hModelName;
+	pMover->hTextureName = hTextureName;
+
+	// if (_hModelNameLoaded == 0) {
+	// 	_hModelNameLoaded = hModelName;
+	// 	const char* modelName = (const char *)_vm->_handle->LockMem(hModelName);
+	// 	const char* textureName = (const char *)_vm->_handle->LockMem(hTextureName);
+	// 	LoadModels(modelName, textureName);
+	// }
+	//assert(_hModelNameLoaded == hModelName);
+
+	if (hModelNameLoaded == 0) {
+		hModelNameLoaded = hModelName;
+		const char* modelName = (const char *)_vm->_handle->LockMem(hModelName);
+		const char* textureName = (const char *)_vm->_handle->LockMem(hTextureName);
+
+		LoadModel(modelName, textureName);
+	}
+	assert(hModelNameLoaded == hModelName);
 }
 
 } // End of namespace Tinsel

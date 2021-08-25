@@ -909,21 +909,7 @@ static int CursorPos(int xory) {
  * Declare 3d model for an actor.
  */
 void Dec3D(int ano, SCNHANDLE hModelName, SCNHANDLE hTextureName) {
-	MOVER* pMover = GetMover(ano);
-	assert(pMover != nullptr);
-
-	pMover->type = MOVER_3D;
-	pMover->hModelName = hModelName;
-	pMover->hTextureName = hTextureName;
-
-	// if (_hModelNameLoaded == 0) {
-	// 	_hModelNameLoaded = hModelName;
-	// 	const char* modelName = (const char *)_vm->_handle->LockMem(hModelName);
-	// 	const char* textureName = (const char *)_vm->_handle->LockMem(hTextureName);
-	// 	LoadModels(modelName, textureName);
-	// }
-	//assert(_hModelNameLoaded == hModelName);
-	// Declare3D(ano, hModelName, hTextureName);
+	Declare3D(ano, hModelName, hTextureName);
 }
 
 /**
