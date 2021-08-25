@@ -154,6 +154,10 @@ void MovePolygonTo(PTYPE ptype, int id, int x, int y);
 
 /*-------------------------------------------------------------------------*/
 
+//TODO(peterkohaut) remove
+// void drawpolys();
+void UpdateGroundPlane();
+
 } // End of namespace Tinsel
 
 #endif		/* TINSEL_POLYGONS_H */
