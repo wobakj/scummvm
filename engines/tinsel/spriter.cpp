@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * Starts up new scenes.
+ * Spriter - 3D Renderer
  */
 
 #include "tinsel/actors.h"
@@ -50,16 +50,14 @@
 #include "tinsel/token.h"
 
 #include "common/rect.h"
-#include "common/stack.h"
+
 #include "common/memstream.h"
 #include "common/textconsole.h"
+#include "common/str.h"
+#include "common/file.h"
 
 namespace Tinsel {
 
-struct Matrix {
-	float m[3][3];
-    float t[3];
-};
 
 struct Viewport {
     int ap;
@@ -118,23 +116,19 @@ struct View {
 
 // static SCNHANDLE g_SceneHandle = 0;	// Current scene handle - stored in case of Save_Scene()
 
-typedef Common::FixedStack<Matrix, 30> MatrixStack;
-static MatrixStack g_modelMatrix;
-static MatrixStack* g_currentMatrix = &g_modelMatrix;
+
 static View g_view;
 
-void MatrixIdentity();
-
-void MatrixReset() {
-    g_currentMatrix->clear();
+void Spriter::MatrixReset() {
+    _currentMatrix->clear();
     MatrixIdentity();
 }
 
-void MatrixPop() {
-    g_currentMatrix->pop();
+void Spriter::MatrixPop() {
+    _currentMatrix->pop();
 }
 
-void MatrixMulVertex(Matrix &m, Vertex3f& v) {
+void Spriter::MatrixMulVertex(Matrix &m, Vertex3f& v) {
     float x = v.x;
     float y = v.y;
     float z = v.z;
@@ -144,26 +138,26 @@ void MatrixMulVertex(Matrix &m, Vertex3f& v) {
     v.z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z;
 }
 
-void MatrixIdentity() {
+void Spriter::MatrixIdentity() {
     Matrix identity {};
     identity.m[0][0] = 1.0f;
     identity.m[1][1] = 1.0f;
     identity.m[2][2] = 1.0f;
 
-    g_currentMatrix->push(identity);
+    _currentMatrix->push(identity);
 }
 
-void MatrixTranslate(float x, float y, float z) {
+void Spriter::MatrixTranslate(float x, float y, float z) {
     Vertex3f v {x,y,z};
-    Matrix &m = g_currentMatrix->top();
+    Matrix &m = _currentMatrix->top();
     MatrixMulVertex(m, v);
     m.t[0] += v.x;
     m.t[1] += v.y;
     m.t[2] += v.z;
 }
 
-void MatrixRotateX(int angle) {
-    Matrix &m = g_currentMatrix->top();
+void Spriter::MatrixRotateX(int angle) {
+    Matrix &m = _currentMatrix->top();
 
     float a = ((angle & 0xfff) / 4095.0f) * 2.0f * M_PI;
     float s = sinf(a);
@@ -189,8 +183,8 @@ void MatrixRotateX(int angle) {
     m.m[2][1] = m21       *  c + m22       * s;
 }
 
-void MatrixRotateY(int angle) {
-    Matrix &m = g_currentMatrix->top();
+void Spriter::MatrixRotateY(int angle) {
+    Matrix &m = _currentMatrix->top();
 
     float a = ((angle & 0xfff) / 4095.0f) * 2.0f * M_PI;
     float s = sinf(a);
@@ -215,8 +209,8 @@ void MatrixRotateY(int angle) {
     m.m[2][0] = m20       * c - m22       * s;
 }
 
-void MatrixRotateZ(int angle) {
-    Matrix &m = g_currentMatrix->top();
+void Spriter::MatrixRotateZ(int angle) {
+    Matrix &m = _currentMatrix->top();
 
     float a = ((angle & 0xfff) / 4095.0f) * 2.0f * M_PI;
     float s = sinf(a);
@@ -241,7 +235,7 @@ void MatrixRotateZ(int angle) {
     m.m[2][0] = m20       *  c + m21       * s;
 }
 
-void SetViewport(int ap) {
+void Spriter::SetViewport(int ap) {
     g_view.viewport.ap = ap;
 
     int ratio = ((g_view.screenRect.right - g_view.screenRect.left) << 12) / ap;
@@ -254,7 +248,11 @@ void SetViewport(int ap) {
 }
 
 
-void InitSpriter(int width, int height) {
+void Spriter::Init(int width, int height) {
+    _currentMatrix = &_modelMatrix;
+    _meshShadow.resize(50);
+
+
     g_view.screenRect.left   = 0;
     g_view.screenRect.top    = 0;
     g_view.screenRect.right  = width;
@@ -272,7 +270,7 @@ void InitSpriter(int width, int height) {
 }
 
 
-void SetCamera(short rotX, short rotY, short rotZ, int posX, int posY, int posZ, int cameraAp) {
+void Spriter::SetCamera(short rotX, short rotY, short rotZ, int posX, int posY, int posZ, int cameraAp) {
     g_view.cameraPosX = posX * 0.01f;
     g_view.cameraPosY = posY * 0.01f;
     g_view.cameraPosZ = posZ * 0.01f;
@@ -283,8 +281,8 @@ void SetCamera(short rotX, short rotY, short rotZ, int posX, int posY, int posZ,
     SetViewport(cameraAp);
 }
 
-void TransformVertex(Vertex3f* vOut, Vertex3f* vIn, int count) {
-    Matrix &m = g_currentMatrix->top();
+void Spriter::TransformVertex(Vertex3f* vOut, Vertex3f* vIn, int count) {
+    Matrix &m = _currentMatrix->top();
 
     float viewportWidth = g_view.viewport.width;
     float viewportHeight = g_view.viewport.height;
@@ -356,7 +354,7 @@ void TransformVertex(Vertex3f* vOut, Vertex3f* vIn, int count) {
     }
 }
 
-void TransformXYZ(int x, int y, int z, Vertex2c& v) {
+void Spriter::TransformXYZ(int x, int y, int z, Vertex2c& v) {
     MatrixReset();
     MatrixRotateX(g_view.cameraRotX);
     MatrixRotateY(g_view.cameraRotY);
@@ -372,9 +370,392 @@ void TransformXYZ(int x, int y, int z, Vertex2c& v) {
 
 }
 
-void LoadModel(const char* modelName, const char* textureName)
-{
+void Spriter::LoadH(const char* modelName) {
+    Common::String filename = modelName;
+    filename += ".h";
 
+    Common::File f;
+    f.open(filename);
+
+    while(!f.eos()) {
+        Common::String line = f.readLine();
+        if (!line.hasPrefix("#define")) {
+            continue;
+        }
+        line.erase(0, 8); // remove "#define "
+
+        size_t underscorePos = line.findFirstOf('_');
+
+        AnimationInfo *anim = nullptr;
+
+        Common::String name = line.substr(0, underscorePos);
+
+        line.erase(0, name.size() + 1); // remove the underscore too
+
+        if (name.hasPrefix("SHADOW")) {
+            anim = &_animShadow;
+        } else {
+            for (Common::Array<AnimationInfo>::iterator it = _animMain.begin(); it != _animMain.end(); ++it) {
+                if (it->name.equals(name)) {
+                    anim = it;
+                    break;
+                }
+            }
+
+            if (anim == nullptr) {
+                AnimationInfo tempAnim {};
+                tempAnim.name = name;
+                _animMain.push_back(tempAnim);
+                anim = &_animMain.back();
+            }
+        }
+
+        size_t spacePos = line.findFirstOf(' ');
+        Common::String sub = line.substr(0, spacePos);
+        auto val = atoi(line.substr(spacePos).c_str());
+
+        if (sub.equals("MESH_NUM")) {
+            anim->meshNum = val;
+        } else if (sub.equals("SCALE_NUM")) {
+            anim->scaleNum = val;
+        } else if (sub.equals("TRANSLATE_NUM")) {
+            anim->translateNum = val;
+        } else if (sub.equals("ROTATE_NUM")) {
+            anim->rotateNum = val;
+        }
+    }
+}
+
+void Spriter::LoadGBL(const char* modelName) {
+    Common::String filename = modelName;
+    filename += ".gbl";
+
+    Common::File f;
+    f.open(filename);
+
+    while(!f.eos()) {
+        Common::String line = f.readLine();
+        if (!line.hasPrefix("#define")) {
+            continue;
+        }
+        line.erase(0, 8); // remove "#define "
+
+        size_t underscorePos = line.findFirstOf('_');
+
+        AnimationInfo *anim = nullptr;
+        MeshInfo *mesh = nullptr;
+
+        Common::String name = line.substr(0, underscorePos);
+
+        line.erase(0, name.size() + 1); // remove the underscore too
+
+        uint meshId = 0;
+        if (name.hasPrefix("SHADOW")) {
+            anim = &_animShadow;
+            meshId = atoi(name.substr(6).c_str());
+            assert(meshId < _meshShadow.size());
+            mesh = &_meshShadow[meshId];
+        } else {
+            for (Common::Array<AnimationInfo>::iterator it = _animMain.begin(); it != _animMain.end(); ++it) {
+                if (it->name.equals(name)) {
+                    anim = it;
+                    break;
+                }
+            }
+            mesh = &_meshMain;
+        }
+
+        assert(anim != nullptr);
+        assert(mesh != nullptr);
+
+        size_t spacePos = line.findFirstOf(' ');
+        Common::String sub = line.substr(0, spacePos);
+        auto val = atoi(line.substr(spacePos).c_str());
+
+        if (sub.equals("MESH_TABLES")) {
+            mesh->meshTables = val;
+        } else if (sub.equals("MESH_TABLES_hunk")) {
+            mesh->meshTablesHunk = val;
+        } else if (sub.equals("RENDER_PROGRAM")) {
+            mesh->renderProgram = val;
+        } else if (sub.equals("RENDER_PROGRAM_hunk")) {
+            mesh->renderProgramHunk = val;
+        } else if (sub.equals("TRANSLATE_TABLES")) {
+            anim->translateTables = val;
+        } else if (sub.equals("TRANSLATE_TABLES_hunk")) {
+            anim->translateTablesHunk = val;
+        } else if (sub.equals("ROTATE_TABLES")) {
+            anim->rotateTables = val;
+        } else if (sub.equals("ROTATE_TABLES_hunk")) {
+            anim->rotateTablesHunk = val;
+        } else if (sub.equals("SCALE_TABLES")) {
+            anim->scaleTables = val;
+        } else if (sub.equals("SCALE_TABLES_hunk")) {
+            anim->scaleTablesHunk = val;
+        }
+    }
+}
+
+#define kPIFF 0x46464950
+#define kRBHF 0x46484252
+#define kRBHH 0x48484252
+#define kBODY 0x59444f42
+#define kRELC 0x434c4552
+
+void Spriter::LoadRBH(const char* modelName, RBH& rbh) {
+    Common::String filename = modelName;
+    filename += ".rbh";
+
+    Common::File f;
+    f.open(filename);
+
+    uint tag = f.readUint32LE();
+    assert(tag == kPIFF);
+    uint fileSize = f.readUint32LE();
+
+    tag = f.readUint32LE();
+    assert(tag == kRBHF);
+    tag = f.readUint32LE();
+    assert(tag == kRBHH);
+    uint headerSize = f.readUint32LE();
+    uint entriesCount = headerSize / 12;
+
+    rbh.resize(entriesCount);
+    for (RBH::iterator it = rbh.begin(); it != rbh.end(); ++it) {
+        f.skip(4); // pointer to data
+        it->size = f.readUint32LE();
+        it->flags = f.readUint16LE();
+        f.skip(2); // padding
+        it->data.resize(it->size);
+    }
+
+    uint entryIdx = 0;
+    while (f.pos() < fileSize) {
+        tag = f.readUint32LE();
+        uint size = f.readUint32LE();
+        if (tag == kBODY) {
+            f.read(rbh[entryIdx].data.data(), size);
+            ++entryIdx;
+        } else if (tag == kRELC) {
+            uint srcIdx = f.readUint32LE();
+            uint dstIdx = f.readUint32LE();
+            // uint entries = (size - sizeof(uint32) * 2) / sizeof(uint32);
+            // uint32* dstDataPtr = (uint32*)_rbh[dstIdx].data.data();
+            // while (entries > 0)
+            // {
+            //     uint offset = f.readUint32LE();
+            //     --entries;
+            // }
+            f.skip(size - 8);
+            rbh[srcIdx].mappingIdx.push_back(dstIdx);
+        } else {
+            assert(false);
+        }
+    }
+}
+
+Meshes Spriter::LoadMeshes(RBH rbh, uint table1, uint index1, uint frame) {
+    assert(table1 < rbh.size());
+
+    Common::MemoryReadStream s1(rbh[table1].data.data(), rbh[table1].data.size());
+    s1.skip(index1);
+
+    uint numFrames = s1.readUint16LE();
+    uint numEntries = s1.readUint16LE();
+
+    assert(frame < numFrames);
+
+    s1.skip(frame * 4);
+    uint index2 = s1.readUint32LE();
+
+    uint table2 = rbh[table1].mappingIdx[0];
+    Common::MemoryReadStream s2(rbh[table2].data.data(), rbh[table2].data.size());
+    s2.skip(index2);
+
+    Meshes result;
+    result.vertexCount = s2.readUint32LE();
+    result.normalCount = s2.readUint32LE();
+    result.meshes.resize(numEntries);
+
+    for (auto& mesh : result.meshes)
+    {
+        uint index3 = s2.readUint32LE();
+        uint table3 = rbh[table2].mappingIdx[0];
+
+        Common::MemoryReadStream s3(rbh[table3].data.data(), rbh[table3].data.size());
+        s3.skip(index3);
+
+
+        uint index4 = s3.readUint32LE();
+        uint table4 = rbh[table3].mappingIdx[1];
+
+        mesh.vertices.resize(s3.readUint32LE());
+
+        Common::MemoryReadStream s4(rbh[table4].data.data(), rbh[table4].data.size());
+        s4.skip(index4);
+
+        for (auto& v : mesh.vertices) {
+            v.x = s4.readFloatLE();
+            v.y = s4.readFloatLE();
+            v.z = s4.readFloatLE();
+        }
+
+        uint index5 = s3.readUint32LE();
+        uint table5 = rbh[table3].mappingIdx[1];
+        
+        mesh.normals.resize(s3.readUint32LE());
+
+        Common::MemoryReadStream s5(rbh[table5].data.data(), rbh[table5].data.size());
+        s5.skip(index5);
+        
+        for (auto& n : mesh.normals) {
+            n.x = s5.readFloatLE();
+            n.y = s5.readFloatLE();
+            n.z = s5.readFloatLE();
+        }
+
+        uint index6 = s3.readUint32LE();
+        uint table6 = rbh[table3].mappingIdx[0];
+
+        Common::MemoryReadStream s6(rbh[table6].data.data(), rbh[table6].data.size());
+        s6.skip(index6);
+
+        while (true) {
+            uint primitiveCount = s6.readUint16LE();
+            uint primitiveType = s6.readUint16LE();
+            uint dataSize = s6.readUint32LE();
+            if (primitiveCount == 0) {
+                break;
+            }
+
+            MeshPart part;
+            part.numVertices = (primitiveType & 1) ? 4 : 3;
+            part.type = primitiveType & 0x7f;
+            part.cull = primitiveType & 0x80;
+            part.primitives.resize(primitiveCount);
+
+            for (auto& prim : part.primitives) {
+                for (uint i = 0; i < 8; ++i) {
+                    prim.indices[i] = s6.readUint16LE();
+                }
+
+                if (part.type == 0 || part.type == 1) {
+                    prim.color = s6.readUint32LE();
+                } else if (part.type == 2 || part.type == 3) {
+                    assert(false); //not supported?
+                } else if (part.type == 4 || part.type == 5) {
+                    for (uint i = 0; i < part.numVertices; ++i) {
+                        prim.uv[i].x = s6.readFloatLE();
+                        prim.uv[i].y = s6.readFloatLE();
+                    }
+                    prim.texture = s6.readUint16LE();
+                    s6.skip(2); //padding
+                }
+            }
+
+            mesh.parts.push_back(part);
+        }
+    }
+
+    return result;
+}
+
+VecFTables Spriter::LoadTableVector3f(RBH rbh, uint table, uint offset)
+{
+    assert(table < rbh.size());
+
+    Common::MemoryReadStream s1(rbh[table].data.data(), rbh[table].data.size());
+    s1.skip(offset);
+
+    uint numFrames = s1.readUint16LE();
+    uint numEntries = s1.readUint16LE();
+
+    VecFTables result;
+    result.frame.resize(numFrames);
+
+    uint table2 = rbh[table].mappingIdx[0];
+
+    for (uint frame = 0; frame < numFrames; frame++) {
+        auto& frameEntries = result.frame[frame];
+        uint index = s1.readUint32LE();
+
+        Common::MemoryReadStream s2(rbh[table2].data.data(), rbh[table2].data.size());
+        s2.skip(index);
+
+        frameEntries.resize(numEntries);
+
+        for (auto& it : frameEntries) {
+            it.x = s2.readFloatLE();
+            it.y = s2.readFloatLE();
+            it.z = s2.readFloatLE();
+        }
+    }
+
+    return result;
+}
+
+VecITables Spriter::LoadTableVector3i(RBH rbh, uint table, uint offset)
+{
+    assert(table < rbh.size());
+
+    Common::MemoryReadStream s1(rbh[table].data.data(), rbh[table].data.size());
+    s1.skip(offset);
+
+    uint numFrames = s1.readUint16LE();
+    uint numEntries = s1.readUint16LE();
+
+    VecITables result;
+    result.frame.resize(numFrames);
+
+    uint table2 = rbh[table].mappingIdx[0];
+
+    for (uint frame = 0; frame < numFrames; frame++) {
+        auto& frameEntries = result.frame[frame];
+        uint index = s1.readUint32LE();
+
+        Common::MemoryReadStream s2(rbh[table2].data.data(), rbh[table2].data.size());
+        s2.skip(index);
+
+        frameEntries.resize(numEntries);
+
+        for (auto& it : frameEntries) {
+            it.x = s2.readUint32LE();
+            it.y = s2.readUint32LE();
+            it.z = s2.readUint32LE();
+        }
+    }
+
+    return result;
+}
+
+void Spriter::InitModel(Model &model, MeshInfo &meshInfo, Common::Array<AnimationInfo> &animInfos) {
+    model.renderProgram             = model.rbh[meshInfo.renderProgramHunk].data.data() + meshInfo.renderProgram;
+
+    AnimationInfo &animInfo = animInfos[0];
+    model.tables.meshes             = LoadMeshes(model.rbh, meshInfo.meshTablesHunk, meshInfo.meshTables, 0);
+    model.tables.translationTable   = LoadTableVector3f(model.rbh, animInfo.translateTablesHunk, animInfo.translateTables).frame[0];
+    model.tables.rotationTable      = LoadTableVector3i(model.rbh, animInfo.rotateTablesHunk, animInfo.rotateTables).frame[0];
+    model.tables.scaleTable         = LoadTableVector3f(model.rbh, animInfo.scaleTablesHunk, animInfo.scaleTables).frame[0];
+
+    _currentMatrix = &_modelMatrix;
+
+    // matrixreset
+    // pushmatrix(identity)
+    RunRenderProgram(nullptr, model.renderProgram, model.tables, true);
+
+}
+
+void Spriter::RunRenderProgram(Spriter* spriter, uint8_t *renderProgram, ModelTables &tables, bool initial)
+{
+    
+}
+
+void Spriter::LoadModel(const char* modelName, const char* textureName) {
+    LoadH(modelName);
+    LoadGBL(modelName);
+    LoadRBH(modelName, _modelMain.rbh);
+
+    InitModel(_modelMain, _meshMain, _animMain);
 }
 
 } // End of namespace Tinsel

@@ -544,7 +544,7 @@ void SetView(int sceneId, int scale) {
 	CAMERA_STRUC *pCamera = (CAMERA_STRUC *)_vm->_handle->LockMem(g_tempStruc.hCamera);
 	for (i = 0; i < g_tempStruc.numCameras; ++i, ++pCamera) {
 		if (sceneId == FROM_32(pCamera->sceneId)) {
-			SetCamera(
+			_vm->_spriter->SetCamera(
 				pCamera->rotX,
 				pCamera->rotY,
 				pCamera->rotZ,

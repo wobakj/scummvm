@@ -907,7 +907,7 @@ const char *const TinselEngine::_textFiles[][3] = {
 
 TinselEngine::TinselEngine(OSystem *syst, const TinselGameDescription *gameDesc) :
 		Engine(syst), _gameDescription(gameDesc), _random("tinsel"),
-		_sound(0), _midiMusic(0), _pcmMusic(0), _bmv(0) {
+		_sound(0), _midiMusic(0), _pcmMusic(0), _bmv(0), _spriter(0) {
 	_vm = this;
 
 	_gameId = 0;
@@ -935,6 +935,7 @@ TinselEngine::TinselEngine(OSystem *syst, const TinselGameDescription *gameDesc)
 
 TinselEngine::~TinselEngine() {
 	_system->getAudioCDManager()->stop();
+	delete _spriter;
 	delete _cursor;
 	delete _bg;
 	delete _font;
@@ -1024,7 +1025,9 @@ Common::Error TinselEngine::run() {
 		initGraphics(width, height, &noirFormat);
 
 		_screenSurface.create(width, 432, noirFormat);
-		InitSpriter(640, 432);
+
+		_spriter = new Spriter();
+		_spriter->Init(640, 432);
 	} else if (getGameID() == GID_DW2) {
 #ifndef DW2_EXACT_SIZE
 		initGraphics(640, 480);
