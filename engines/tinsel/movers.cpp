@@ -1083,7 +1083,7 @@ void Declare3D(int ano, SCNHANDLE hModelName, SCNHANDLE hTextureName)
 		const char* modelName = (const char *)_vm->_handle->LockMem(hModelName);
 		const char* textureName = (const char *)_vm->_handle->LockMem(hTextureName);
 
-		LoadModel(modelName, textureName);
+		_vm->_spriter->LoadModel(modelName, textureName);
 	}
 	assert(hModelNameLoaded == hModelName);
 }

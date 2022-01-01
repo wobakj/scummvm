@@ -64,6 +64,7 @@ class Actor;
 class Handle;
 class Scroll;
 class Dialogs;
+class Spriter;
 
 typedef Common::List<Common::Rect> RectList;
 
@@ -176,6 +177,7 @@ public:
 	Config *_config;
 	Scroll *_scroll;
 	Dialogs *_dialogs;
+	Spriter *_spriter;
 
 	KEYFPTR _keyHandler;
 
