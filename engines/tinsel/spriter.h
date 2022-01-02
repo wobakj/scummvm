@@ -49,12 +49,29 @@ struct Vertex2c {
 };
 
 struct Matrix {
-	float m[3][3];
+    float m[3][3];
     float t[3];
 };
 
 typedef Common::FixedStack<Matrix, 30> MatrixStack;
+typedef Common::Array<Vertex3f> Vertices3f;
 
+
+enum RenderProgramOp : uint16_t {
+    MATRIX_DUPLICATE    = 1,
+    MATRIX_REMOVE       = 2,
+    U3                  = 3,
+    TRANSFORM           = 4,
+    TRANSLATE_X         = 5,
+    TRANSLATE_Y         = 6,
+    TRANSLATE_Z         = 7,
+    TRANSLATE_XYZ       = 8,
+    ROTATE_X            = 9,
+    ROTATE_Y            = 10,
+    ROTATE_Z            = 11,
+    ROTATE_XYZ          = 17,
+    STOP                = 16,
+};
 
 struct AnimationInfo {
     Common::String name;
@@ -162,6 +179,31 @@ struct Model {
     uint interpolant;
 };
 
+struct Viewport {
+    int ap;
+    float width;
+    float height;
+
+    Common::Rect rect;
+};
+
+struct View {
+    int centerX;
+    int centerY;
+
+    Common::Rect viewRect;
+    Common::Rect screenRect;
+
+    Viewport viewport;
+
+    float cameraPosX;
+    float cameraPosY;
+    float cameraPosZ;
+    int cameraRotX;
+    int cameraRotY;
+    int cameraRotZ;
+};
+
 class Spriter {
 private:
     MatrixStack _modelMatrix;
@@ -170,25 +212,30 @@ private:
     Common::Array<AnimationInfo> _animMain;
     AnimationInfo _animShadow;
 
-    Common::Array<MeshInfo> _meshShadow;
     MeshInfo _meshMain;
+    Common::Array<MeshInfo> _meshShadow;
 
     Model _modelMain;
     Model _modelShadow;
+
+    View _view;
 
 public:
     void Init(int width, int height);
 
     void SetCamera(short rotX,short rotY,short rotZ,int posX,int posY,int posZ,int cameraAp);
 
-    void TransformXYZ(int x, int y, int z, Vertex2c& v);
+    void TransformSceneXYZ(int x, int y, int z, Vertex2c& v);
 
     void LoadModel(const char* modelName, const char* textureName);
 
 private:
+    // Matrix operations
+    const Matrix& MatrixCurrent() const;
     void MatrixReset();
     void MatrixIdentity();
-    void MatrixPop();
+    void MatrixRemove();
+    void MatrixDuplicate();
     void MatrixMulVertex(Matrix &m, Vertex3f& v);
     void MatrixTranslate(float x, float y, float z);
     void MatrixRotateX(int angle);
@@ -197,8 +244,9 @@ private:
 
     void SetViewport(int ap);
 
-    void TransformVertex(Vertex3f* vOut, Vertex3f* vIn, int count);
+    void TransformVertices(Vertex3f* vOut, Vertex3f* vIn, int count);
 
+    // Loading of model
     void LoadH(const char* modelName);
     void LoadGBL(const char* modelName);
     void LoadRBH(const char* modelName, RBH& rbh);
@@ -208,7 +256,17 @@ private:
     VecITables LoadTableVector3i(RBH rbh, uint table, uint offset);
     void InitModel(Model& model, MeshInfo &meshInfo, Common::Array<AnimationInfo> &animInfo);
 
-    void RunRenderProgram(Spriter* spriter, uint8_t *renderProgram, ModelTables &tables, bool initial);
+    // Rendering
+    void RunRenderProgram(Model &model, bool initial);
+
+    void FindSimilarVertices(Mesh& mesh, Vertices3f &verticesTransformed, Common::Array<uint16>& sameVertices) const;
+    void MergeVertices(Mesh &mesh, Common::Array<uint16>& sameVertices);
+
+    void TransformAndRenderMesh(Mesh& mesh, Vertices3f& verticesTransformed);
+    void TransformMesh(Mesh& mesh, Vertices3f& verticesTransformed);
+    void RenderMeshParts(Mesh& mesh, Vertices3f& verticesTransformed);
+    void RenderMeshPartColor(MeshPart& part, Vertices3f& verticesTransformed);
+    void RenderMeshPartTexture(MeshPart& part, Vertices3f& verticesTransformed);
 };
 
 } // End of namespace Tinsel

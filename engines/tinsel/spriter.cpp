@@ -58,74 +58,21 @@
 
 namespace Tinsel {
 
-
-struct Viewport {
-    int ap;
-    float width;
-    float height;
-
-    Common::Rect rect;
-};
-
-struct View {
-    int centerX;
-    int centerY;
-
-    Common::Rect viewRect;
-    Common::Rect screenRect;
-
-    Viewport viewport;
-
-    float cameraPosX;
-    float cameraPosY;
-    float cameraPosZ;
-    int cameraRotX;
-    int cameraRotY;
-    int cameraRotZ;
-};
-
-//----------------- EXTERNAL FUNCTIONS ---------------------
-
-// // in EFFECT.C
-// extern void EffectPolyProcess(CORO_PARAM, const void *);
-
-// // in PDISPLAY.C
-// #ifdef DEBUG
-// extern void CursorPositionProcess(CORO_PARAM, const void *);
-// #endif
-// extern void TagProcess(CORO_PARAM, const void *);
-// extern void PointProcess(CORO_PARAM, const void *);
-// extern void EnableTags();
-
-
-//----------------- LOCAL DEFINES --------------------
-
-// #include "common/pack-start.h"	// START STRUCT PACKING
-
-// #include "common/pack-end.h"	// END STRUCT PACKING
-
-
-//----------------- LOCAL GLOBAL DATA --------------------
-
-// #ifdef DEBUG
-// static bool g_ShowPosition = false;	// Set when showpos() has been called
-// #endif
-
-// int g_sceneCtr = 0;
-// static int g_initialMyEscape = 0;
-
-// static SCNHANDLE g_SceneHandle = 0;	// Current scene handle - stored in case of Save_Scene()
-
-
-static View g_view;
+const Matrix& Spriter::MatrixCurrent() const {
+    return _currentMatrix->top();
+}
 
 void Spriter::MatrixReset() {
     _currentMatrix->clear();
     MatrixIdentity();
 }
 
-void Spriter::MatrixPop() {
+void Spriter::MatrixRemove() {
     _currentMatrix->pop();
+}
+
+void Spriter::MatrixDuplicate() {
+    _currentMatrix->push(_currentMatrix->top());
 }
 
 void Spriter::MatrixMulVertex(Matrix &m, Vertex3f& v) {
@@ -236,76 +183,77 @@ void Spriter::MatrixRotateZ(int angle) {
 }
 
 void Spriter::SetViewport(int ap) {
-    g_view.viewport.ap = ap;
+    _view.viewport.ap = ap;
 
-    int ratio = ((g_view.screenRect.right - g_view.screenRect.left) << 12) / ap;
-    g_view.viewport.width = ratio;
-    g_view.viewport.height = ratio;
+    int ratio = ((_view.screenRect.right - _view.screenRect.left) << 12) / ap;
+    _view.viewport.width = ratio;
+    _view.viewport.height = ratio;
 
-    g_view.viewport.ap = (ap + 1800) / 3600;
+    _view.viewport.ap = (ap + 1800) / 3600;
 
-    g_view.viewport.rect = g_view.viewRect;
+    _view.viewport.rect = _view.viewRect;
 }
 
 
 void Spriter::Init(int width, int height) {
+
+    bool is3D = g_system->hasFeature(OSystem::kFeatureOpenGLForGame);
+    
     _currentMatrix = &_modelMatrix;
     _meshShadow.resize(50);
 
 
-    g_view.screenRect.left   = 0;
-    g_view.screenRect.top    = 0;
-    g_view.screenRect.right  = width;
-    g_view.screenRect.bottom = height;
+    _view.screenRect.left   = 0;
+    _view.screenRect.top    = 0;
+    _view.screenRect.right  = width;
+    _view.screenRect.bottom = height;
 
-    g_view.centerX = width / 2;
-    g_view.centerY = height / 2;
+    _view.centerX = width / 2;
+    _view.centerY = height / 2;
 
-    g_view.viewRect.left   = -g_view.centerX;
-    g_view.viewRect.top    = -g_view.centerY;
-    g_view.viewRect.right  =  g_view.screenRect.right  - g_view.screenRect.left - g_view.centerX - 1;
-    g_view.viewRect.bottom =  g_view.screenRect.bottom - g_view.screenRect.top  - g_view.centerY;
+    _view.viewRect.left   = -_view.centerX;
+    _view.viewRect.top    = -_view.centerY;
+    _view.viewRect.right  =  _view.screenRect.right  - _view.screenRect.left - _view.centerX - 1;
+    _view.viewRect.bottom =  _view.screenRect.bottom - _view.screenRect.top  - _view.centerY;
 
     SetViewport(306030);
 }
 
 
 void Spriter::SetCamera(short rotX, short rotY, short rotZ, int posX, int posY, int posZ, int cameraAp) {
-    g_view.cameraPosX = posX * 0.01f;
-    g_view.cameraPosY = posY * 0.01f;
-    g_view.cameraPosZ = posZ * 0.01f;
-    g_view.cameraRotX = rotX;
-    g_view.cameraRotY = rotY;
-    g_view.cameraRotZ = rotZ;
+    _view.cameraPosX = posX * 0.01f;
+    _view.cameraPosY = posY * 0.01f;
+    _view.cameraPosZ = posZ * 0.01f;
+    _view.cameraRotX = rotX;
+    _view.cameraRotY = rotY;
+    _view.cameraRotZ = rotZ;
 
     SetViewport(cameraAp);
 }
 
-void Spriter::TransformVertex(Vertex3f* vOut, Vertex3f* vIn, int count) {
-    Matrix &m = _currentMatrix->top();
+void Spriter::TransformVertices(Vertex3f* vOut, Vertex3f* vIn, int count) {
+    const Matrix &m = MatrixCurrent();
 
-    float viewportWidth = g_view.viewport.width;
-    float viewportHeight = g_view.viewport.height;
+    float viewportWidth = _view.viewport.width;
+    float viewportHeight = _view.viewport.height;
     for (int i = 0; i < count; ++i, ++vIn, ++vOut) {
         vOut->x = m.m[0][0] * vIn->x + m.t[0] + m.m[0][1] * vIn->y + m.m[0][2] * vIn->z;
         vOut->y = m.m[1][0] * vIn->x + m.t[1] + m.m[1][1] * vIn->y + m.m[1][2] * vIn->z;
         vOut->z = m.m[2][0] * vIn->x + m.t[2] + m.m[2][1] * vIn->y + m.m[2][2] * vIn->z;
 
         if (vOut->z <= 1.0f) {
-            //vOut->intensityFront = 1.0;
             //vOut->clipFlags = CLIP_FRONT;
             vOut->x *= viewportWidth;
             vOut->y *= viewportHeight;
         } else {
             float z = 1.0F / vOut->z;
-            //vp->intensityFront = z;
             //vp->clipFlags = NO_CLIP;
             vOut->x *= z * viewportWidth;
             vOut->y *= z * viewportHeight;
         }
 
-        // vOut->x = g_view.centerX + vOut->x;
-        // vOut->y = g_view.centerY + vOut->y;
+        // vOut->x = _view.centerX + vOut->cx;
+        // vOut->y = _view.centerY + vOut->y;
 
         // if ((ushort)((ushort)((float)ppiVar1->left < screenX) << 8 |
         //             (ushort)((float)ppiVar1->left == screenX) << 0xe) == 0) {
@@ -354,20 +302,19 @@ void Spriter::TransformVertex(Vertex3f* vOut, Vertex3f* vIn, int count) {
     }
 }
 
-void Spriter::TransformXYZ(int x, int y, int z, Vertex2c& v) {
+void Spriter::TransformSceneXYZ(int x, int y, int z, Vertex2c& v) {
     MatrixReset();
-    MatrixRotateX(g_view.cameraRotX);
-    MatrixRotateY(g_view.cameraRotY);
-    MatrixRotateZ(g_view.cameraRotZ);
-    MatrixTranslate(-g_view.cameraPosX, -g_view.cameraPosY, -g_view.cameraPosZ);
+    MatrixRotateX(_view.cameraRotX);
+    MatrixRotateY(_view.cameraRotY);
+    MatrixRotateZ(_view.cameraRotZ);
+    MatrixTranslate(-_view.cameraPosX, -_view.cameraPosY, -_view.cameraPosZ);
     MatrixTranslate(x / 100.0f, y / 100.0f, z / 100.0f);
 
     Vertex3f vIn {}, vOut{};
-    TransformVertex(&vOut, &vIn, 1);
+    TransformVertices(&vOut, &vIn, 1);
 
-    v.x = g_view.centerX + vOut.x;
-    v.y = g_view.centerY + vOut.y;
-
+    v.x = _view.centerX + vOut.x;
+    v.y = _view.centerY + vOut.y;
 }
 
 void Spriter::LoadH(const char* modelName) {
@@ -602,12 +549,12 @@ Meshes Spriter::LoadMeshes(RBH rbh, uint table1, uint index1, uint frame) {
 
         uint index5 = s3.readUint32LE();
         uint table5 = rbh[table3].mappingIdx[1];
-        
+
         mesh.normals.resize(s3.readUint32LE());
 
         Common::MemoryReadStream s5(rbh[table5].data.data(), rbh[table5].data.size());
         s5.skip(index5);
-        
+
         for (auto& n : mesh.normals) {
             n.x = s5.readFloatLE();
             n.y = s5.readFloatLE();
@@ -739,15 +686,462 @@ void Spriter::InitModel(Model &model, MeshInfo &meshInfo, Common::Array<Animatio
 
     _currentMatrix = &_modelMatrix;
 
-    // matrixreset
-    // pushmatrix(identity)
-    RunRenderProgram(nullptr, model.renderProgram, model.tables, true);
+    MatrixReset();
+    MatrixIdentity();
+
+    RunRenderProgram(model, true);
 
 }
 
-void Spriter::RunRenderProgram(Spriter* spriter, uint8_t *renderProgram, ModelTables &tables, bool initial)
+void Spriter::RunRenderProgram(Model &model, bool initial)
 {
-    
+    uint8* program = model.renderProgram;
+    uint ip = 0;
+
+    Vertices3f vertices;
+    vertices.reserve(model.tables.meshes.vertexCount);
+
+    Vertices3f normals;
+    normals.reserve(model.tables.meshes.normalCount);
+
+    Common::Array<uint16> sameVertices;
+    sameVertices.resize(model.tables.meshes.vertexCount);
+
+    bool print = true;
+    bool stop = false;
+    do
+    {
+        // if (print ) printf("%4i %2i - ", ip, _matrices.count);
+
+        RenderProgramOp opCode = (RenderProgramOp)READ_LE_UINT16(&program[ip]);
+        ip += 2;
+
+        switch(opCode)
+        {
+            case MATRIX_DUPLICATE:
+            {
+                // if (print) printf("MATRIX_DUPL\n");
+                MatrixDuplicate();
+                break;
+            }
+            case MATRIX_REMOVE:
+            {
+                // if (print) printf("MATRIX_REMOVE\n");
+                MatrixRemove();
+                break;
+            }
+            case U3:
+            {
+                uint16 entry = READ_LE_UINT16(&program[ip]);
+                ip += 2;
+                // if (print)
+                // {
+                //     printf("U3 ");
+                //     printf("mesh entry id: %i\n", entry);
+                // }
+                // local_14 = spriter_;
+                // spriter::renderProgram_FUN_0040ea10(spriter_,(&pSVar5->meshTable->entries)[entry],&spriter_->u2);
+                break;
+            }
+            case TRANSFORM:
+            {
+                uint16 entry = READ_LE_UINT16(&program[ip]);
+
+                Mesh& mesh = model.tables.meshes.meshes[entry];
+                ip += 2;
+
+                // if (print)
+                // {
+                //     printf("TRANSFORM ");
+                //     printf("mesh entry id: %i\n", entry);
+                //     printMatrix();
+                // }
+
+                if (initial)
+                {
+                    FindSimilarVertices(mesh, vertices, sameVertices);
+                    MergeVertices(mesh, sameVertices);
+                }
+                else
+                {
+                    TransformAndRenderMesh(mesh, vertices);
+                }
+
+                break;
+            }
+            case TRANSLATE_X:
+            {
+                uint16 entry = READ_LE_UINT16(&program[ip]);
+                ip += 2;
+
+                Vertex3f& v = model.tables.translationTable[entry];
+
+                // if (print)
+                // {
+                //     printf("TRANSLATE_X ");
+                //     printVertex(v);
+                //     printf("\n");
+                // }
+
+                MatrixTranslate(v.x, 0, 0);
+
+                // printMatrix();
+
+                break;
+            }
+            case TRANSLATE_Y:
+            {
+                uint16 entry = READ_LE_UINT16(&program[ip]);
+                ip += 2;
+
+                Vertex3f& v = model.tables.translationTable[entry];
+
+                // if (print)
+                // {
+                //     printf("TRANSLATE_Y ");
+                //     printVertex(v);
+                //     printf("\n");
+                // }
+
+                MatrixTranslate(0, v.y, 0);
+
+                // printMatrix();
+
+                break;
+            }
+            case TRANSLATE_Z:
+            {
+                uint16 entry = READ_LE_UINT16(&program[ip]);
+                ip += 2;
+
+                Vertex3f& v = model.tables.translationTable[entry];
+
+                // if (print)
+                // {
+                //     printf("TRANSLATE_Z ");
+                //     printVertex(v);
+                //     printf("\n");
+                // }
+
+                MatrixTranslate(0, 0, v.z);
+
+                // printMatrix();
+
+                break;
+            }
+            case TRANSLATE_XYZ:
+            {
+                uint16 entry = READ_LE_UINT16(&program[ip]);
+                ip += 2;
+
+                Vertex3f& v = model.tables.translationTable[entry];
+
+                // if (print)
+                // {
+                //     printf("TRANSLATE_XYZ ");
+                //     printVertex(v);
+                //     printf("\n");
+                // }
+
+                MatrixTranslate(v.x, v.y, v.z);
+
+                // printMatrix();
+
+                break;
+            }
+            case ROTATE_X:
+            {
+                uint16 entry = READ_LE_UINT16(&program[ip]);
+                ip += 2;
+
+                Vertex3i& v = model.tables.rotationTable[entry];
+
+                // if (print)
+                // {
+                //     printf("ROTATE_X ");
+                //     printVertexI(v);
+                //     printf("\n");
+                // }
+
+                MatrixRotateX(v.x);
+
+                break;
+            }
+            case ROTATE_Y:
+            {
+                uint16 entry = READ_LE_UINT16(&program[ip]);
+                ip += 2;
+
+                Vertex3i& v = model.tables.rotationTable[entry];
+
+                // if (print)
+                // {
+                //     printf("ROTATE_Y ");
+                //     printVertexI(v);
+                //     printf("\n");
+                // }
+
+                MatrixRotateY(v.y);
+
+                break;
+            }
+            case ROTATE_Z:
+            {
+                uint16 entry = READ_LE_UINT16(&program[ip]);
+                ip += 2;
+
+                Vertex3i& v = model.tables.rotationTable[entry];
+
+                // if (print)
+                // {
+                //     printf("ROTATE_Z ");
+                //     printVertexI(v);
+                //     printf("\n");
+                // }
+
+                MatrixRotateZ(v.z);
+
+                break;
+            }
+            case STOP:
+            {
+                // if (print) printf("STOP\n");
+                stop = true;
+                break;
+            }
+            case ROTATE_XYZ:
+            {
+                uint entry = READ_LE_UINT16(&program[ip]);
+                ip += 2;
+
+                Vertex3i& v = model.tables.rotationTable[entry];
+
+                // if (print)
+                // {
+                //     printf("ROTATE_XYZ ");
+                //     printVertexI(v);
+                //     printf("\n");
+                // }
+
+                MatrixRotateX(v.x);
+                MatrixRotateY(v.y);
+                MatrixRotateZ(v.z);
+
+                // printMatrix();
+
+                break;
+            }
+            default:
+            {
+                error("UNKNOWN RENDER OP %i\n", opCode);
+            }
+        }
+
+    } while (!stop);
+
+}
+
+void Spriter::FindSimilarVertices(Mesh& mesh, Vertices3f& verticesTransformed, Common::Array<uint16>& sameVertices) const {
+    const Matrix &m = MatrixCurrent();
+
+    uint i_start = verticesTransformed.size();
+    for (uint i = 0; i < mesh.vertices.size(); ++i) {
+        Vertex3f& vIn = mesh.vertices[i];
+
+        Vertex3f vOut;
+        vOut.x = m.m[0][0] * vIn.x + m.m[0][1] * vIn.y + m.m[0][2] * vIn.z + m.t[0];
+        vOut.y = m.m[1][0] * vIn.x + m.m[1][1] * vIn.y + m.m[1][2] * vIn.z + m.t[1];
+        vOut.z = m.m[2][0] * vIn.x + m.m[2][1] * vIn.y + m.m[2][2] * vIn.z + m.t[2];
+        verticesTransformed.push_back(vOut);
+
+        for (uint j = 0; j < verticesTransformed.size() - 1; ++j) {
+            float dX = vOut.x - verticesTransformed[j].x;
+            float dY = vOut.y - verticesTransformed[j].y;
+            float dZ = vOut.z - verticesTransformed[j].z;
+            if (dZ * dZ + dX * dX + dY * dY < 0.01f) { // this is too big maybe?
+                sameVertices[i_start + i] = j + 1; // 0 is reserved for not found
+                break;
+            }
+        }
+    }
+    return;
+}
+
+void Spriter::MergeVertices(Mesh &mesh, Common::Array<uint16>& sameVertices) {
+    for (auto& part : mesh.parts) {
+        for (auto& prim : part.primitives) {
+            for (uint i = 0; i < part.numVertices; ++i) {
+                if (sameVertices[prim.indices[i]] != 0) {
+                    prim.indices[i] = sameVertices[prim.indices[i]] - 1;
+                }
+            }
+        }
+    }
+}
+
+void Spriter::TransformAndRenderMesh(Mesh& mesh, Vertices3f& verticesTransformed) {
+    TransformMesh(mesh, verticesTransformed);
+    RenderMeshParts(mesh, verticesTransformed);
+}
+
+
+void Spriter::TransformMesh(Mesh& mesh, Vertices3f& verticesTransformed) {
+    const Matrix &m = MatrixCurrent();
+
+    float viewportWidth = _view.viewport.width;
+    float viewportHeight = _view.viewport.height;
+
+    for(auto& vIn : mesh.vertices) {
+        Vertex3f vOut;
+        vOut.x = m.m[0][0] * vIn.x + m.m[0][1] * vIn.y + m.m[0][2] * vIn.z + m.t[0];
+        vOut.y = m.m[1][0] * vIn.x + m.m[1][1] * vIn.y + m.m[1][2] * vIn.z + m.t[1];
+        vOut.z = m.m[2][0] * vIn.x + m.m[2][1] * vIn.y + m.m[2][2] * vIn.z + m.t[2];
+
+        if (vOut.z <= 1.0f) {
+            //vOut->clipFlags = CLIP_FRONT;
+            vOut.x *= viewportWidth;
+            vOut.y *= viewportHeight;
+        } else {
+            float z = 1.0F / vOut.z;
+            //vp->clipFlags = NO_CLIP;
+            vOut.x *= z * viewportWidth;
+            vOut.y *= z * viewportHeight;
+        }
+
+        verticesTransformed.push_back(vOut);
+
+        // vp->z = vp->sZ;
+        // vp->x = (float)spriter::_instancePtr->viewportCenterX + vp->x;
+        // vp->y = (float)spriter::_instancePtr->viewportCenterY + vp->y;
+
+        // ppiVar1 = spriter::_instancePtr->UBclipRect;
+        // if ((ushort)((ushort)((float)ppiVar1->left < screenX) << 8 |
+        //             (ushort)((float)ppiVar1->left == screenX) << 0xe) == 0) {
+        //     ppiVar1->left = (int)ROUND(vp->x);
+        //     ppiVar1 = spriter::_instancePtr->UBclipRect;
+        // }
+        // if ((float)ppiVar1->right < vp->x) {
+        //     ppiVar1->right = (int)ROUND(vp->x);
+        //     ppiVar1 = spriter::_instancePtr->UBclipRect;
+        // }
+
+        // screenY = vp->y;
+        // screenY_ = vp->y;
+        // if ((ushort)((ushort)((float)ppiVar1->top < screenY) << 8 | (ushort)((float)ppiVar1->top == screenY) << 0xe)
+        //     == 0) {
+        //     ppiVar1->top = (int)ROUND(screenY_);
+        //     screenY_ = vp->y;
+        //     ppiVar1 = spriter::_instancePtr->UBclipRect;
+        // }
+        // if ((float)ppiVar1->bottom < screenY_) {
+        //     ppiVar1->bottom = (int)ROUND(screenY_);
+        //     screenY_ = vp->y;
+        //     screenX_ = vp->x;
+        // }
+        // else {
+        //     screenX_ = vp->x;
+        // }
+        // z = (float)(viewport->rect).left;
+        // if ((ushort)((ushort)(z < screenX_) << 8 | (ushort)(z == screenX_) << 0xe) == 0) {
+        //     vp->clipFlags = vp->clipFlags | CLIP_LEFT;
+        // }
+        // else {
+        //     if ((float)(viewport->rect).right <= screenX_) {
+        //         vp->clipFlags = vp->clipFlags | CLIP_RIGHT;
+        //     }
+        // }
+        // z = (float)(viewport->rect).top;
+        // if ((ushort)((ushort)(z < screenY_) << 8 | (ushort)(z == screenY_) << 0xe) == 0) {
+        //     vp->clipFlags = vp->clipFlags | CLIP_TOP;
+        // }
+        // else {
+        //     if ((float)(viewport->rect).bottom <= screenY_) {
+        //         vp->clipFlags = vp->clipFlags | CLIP_BOTTOM;
+        //     }
+        // }
+    }
+    // spriter::_verticesTransformed = spriter::_verticesTransformed + count;
+    // return;
+}
+
+void Spriter::RenderMeshParts(Mesh& mesh, Vertices3f& verticesTransformed) {
+    // glLoadIdentity();
+
+    // glTranslatef(0, -0.5f, 0);
+
+    // float f = 1.0f / 50.0f;
+    // glScalef(f, -f, f);
+
+    // glRotatef(-30.0f, 1.0f, 0.0f, 0.0f);
+
+    // static float angle2  = 0;
+    // glRotatef(angle2, 0.0f, 1.0f, 0.0f);
+    // angle2 += 0.1f;
+
+    for(auto& part : mesh.parts) {
+        switch(part.type) {
+        case 0:
+        case 1:
+            RenderMeshPartColor(part, verticesTransformed);
+            break;
+        // case 0x02:
+        //     RenderMeshPart2(spriter,transformedVertices,(PRIMITIVE_23 *)submesh->data, submesh->primitiveCount, viewport);
+        //     break;
+        // case 0x03:
+        //     RenderMeshPart3(spriter,transformedVertices,(PRIMITIVE_23 *)submesh->data, submesh->primitiveCount, viewport);
+        //     break;
+        case 4:
+        case 5:
+            RenderMeshPartTexture(part, verticesTransformed);
+            break;
+        }
+    }
+    return;
+}
+
+void Spriter::RenderMeshPartColor(MeshPart& part, Vertices3f& verticesTransformed) {
+    // if(part.cull) glEnable(GL_CULL_FACE);
+    // glBegin(GL_TRIANGLE_FAN);
+    // for (auto& prim : part.primitives)
+    // {
+    //     GLubyte r = (prim.color >> 0) & 0xff;
+    //     GLubyte g = (prim.color >> 8) & 0xff;
+    //     GLubyte b = (prim.color >> 16) & 0xff;
+
+    //     glColor3ub(r,g,b);
+
+    //     for (u32 i = 0; i < part.numVertices; ++i)
+    //     {
+    //         u32 index = prim.indices[i];
+    //         Vertex& v = vertices[index];
+    //         glVertex3f(v.x, v.y, v.z);
+    //     }
+    // }
+    // glEnd();
+    // glDisable(GL_CULL_FACE);
+}
+
+void Spriter::RenderMeshPartTexture(MeshPart& part, Vertices3f& verticesTransformed) {
+    // if (!part.cull) glEnable(GL_CULL_FACE);
+    // glEnable(GL_TEXTURE_2D);
+    // glColor3f(1.0f, 1.0f, 1.0f);
+
+    // for (auto& prim : part.primitives)
+    // {
+    //     glBindTexture(GL_TEXTURE_2D, _vmcTextures[prim.texture]);
+
+    //     glBegin(GL_TRIANGLE_FAN);
+    //     for (u32 i = 0; i < part.numVertices; ++i)
+    //     {
+    //         u32 index = prim.indices[i];
+    //         Vertex& v = vertices[index];
+    //         glTexCoord2f(prim.uv[i].x / 255.0f, prim.uv[i].y / 255.0f);
+    //         glVertex3f(v.x, v.y, v.z);
+    //     }
+    //     glEnd();
+    // }
+    // glDisable(GL_TEXTURE_2D);
+    // glDisable(GL_CULL_FACE);
 }
 
 void Spriter::LoadModel(const char* modelName, const char* textureName) {
