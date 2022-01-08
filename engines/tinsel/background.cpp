@@ -253,7 +253,7 @@ void Background::DrawBackgnd() {
 		UpdateScreenRect(*r);
 	}
 
-	g_system->updateScreen();
+	UpdateScreen();
 
 	// delete all the clipping rectangles
 	ResetClipRect();

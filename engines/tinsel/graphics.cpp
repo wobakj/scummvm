@@ -29,6 +29,9 @@
 #include "tinsel/scn.h"
 
 #include "common/textconsole.h"
+#if USE_OPENGL_GAME || USE_OPENGL_SHADERS
+#include "graphics/opengl/system_headers.h"
+#endif
 
 namespace Tinsel {
 
@@ -40,6 +43,11 @@ namespace Tinsel {
 #define CHAR_HEIGHT 4
 
 extern uint8 g_transPalette[MAX_COLORS];
+
+#if USE_OPENGL_GAME || USE_OPENGL_SHADERS
+	GLuint *_surfaceTexture;
+#endif
+
 
 //----------------- SUPPORT FUNCTIONS ---------------------
 
@@ -1035,6 +1043,10 @@ static void t3WrtText(DRAWOBJECT *pObj, uint8 *srcP, uint8 *destP) {
 
 //----------------- MAIN FUNCTIONS ---------------------
 
+static bool g_useGL = false;
+static GLuint g_screenTexture;
+static bool g_screenUpdated = false;
+
 /**
  * Clears both the screen surface buffer and screen to the specified value
  */
@@ -1050,10 +1062,84 @@ void ClearScreen() {
  * Updates the screen surface within the following rectangle
  */
 void UpdateScreenRect(const Common::Rect &pClip) {
-	int yOffset = TinselV2 ? (g_system->getHeight() - SCREEN_HEIGHT) / 2 : 0;
-	byte *pSrc = (byte *)_vm->screen().getBasePtr(pClip.left, pClip.top);
-	g_system->copyRectToScreen(pSrc, _vm->screen().pitch, pClip.left, pClip.top + yOffset,
-		pClip.width(), pClip.height());
+	if (!g_useGL) {
+		int yOffset = TinselV2 ? (g_system->getHeight() - SCREEN_HEIGHT) / 2 : 0;
+		byte *pSrc = (byte *)_vm->screen().getBasePtr(pClip.left, pClip.top);
+		g_system->copyRectToScreen(pSrc, _vm->screen().pitch, pClip.left, pClip.top + yOffset,
+			pClip.width(), pClip.height());
+	}
+	g_screenUpdated = true;
+}
+
+void UpdateScreen() {
+	if (g_useGL) {
+		// No need to redraw when nothing has changed
+		if (!g_screenUpdated) return;
+#if USE_OPENGL_GAME || USE_OPENGL_SHADERS
+		Graphics::Surface &screen = _vm->screen();
+
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		glOrtho(0, 1.0, 1.0, 0, 0, 1);
+
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+
+		glMatrixMode(GL_TEXTURE);
+		glPushMatrix();
+		glLoadIdentity();
+
+		glDisable(GL_LIGHTING);
+		glEnable(GL_TEXTURE_2D);
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_ALPHA_TEST);
+		glDepthMask(GL_FALSE);
+
+		glBindTexture(GL_TEXTURE_2D, g_screenTexture);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, screen.w, screen.h, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, const_cast<void *>(screen.getPixels()));
+
+		glColor4f(1.0, 1.0, 1.0, 1.0);
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(0.0, 0.0);
+			glVertex2f(0.0, 0.0);
+
+			glTexCoord2f(1.0, 0.0);
+			glVertex2f(1.0, 0.0);
+
+			glTexCoord2f(1.0, 1.0);
+			glVertex2f(1.0, 1.0);
+
+			glTexCoord2f(0.0, 1.0);
+			glVertex2f(0.0, 1.0);
+		glEnd();
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		g_screenUpdated = false;
+	}
+#endif
+	g_system->updateScreen();
+}
+
+
+void InitGL() {
+#if USE_OPENGL_GAME || USE_OPENGL_SHADERS
+	Graphics::Surface &screen = _vm->screen();
+
+	glGenTextures(1, &g_screenTexture);
+	glBindTexture(GL_TEXTURE_2D, g_screenTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screen.w, screen.h, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	g_useGL = true;
+#endif
 }
 
 /**
