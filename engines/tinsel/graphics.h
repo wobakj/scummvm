@@ -61,11 +61,14 @@ struct DRAWOBJECT {
 |*			    Function Prototypes				*|
 \*----------------------------------------------------------------------*/
 
+void InitGL();
+
 void ClearScreen();
 void DrawObject(DRAWOBJECT *pObj);
 
 // called to update a rectangle on the video screen from a video page
 void UpdateScreenRect(const Common::Rect &pClip);
+void UpdateScreen();
 
 } // End of namespace Tinsel
 

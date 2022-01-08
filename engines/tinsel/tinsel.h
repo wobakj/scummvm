@@ -47,6 +47,7 @@
  * Games using this engine:
  * - Discworld
  * - Discworld 2: Missing Presumed ...!?
+ * - Discworld Noir
  */
 namespace Tinsel {
 

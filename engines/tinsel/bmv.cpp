@@ -1355,7 +1355,7 @@ void BMVPlayer::CopyMovieToScreen() {
 
 	BmvDrawText(true);
 	UpdateScreenRect(Common::Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT));
-	g_system->updateScreen();
+	UpdateScreen();
 	BmvDrawText(false);
 }
 
