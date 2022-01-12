@@ -28,6 +28,7 @@
 #include "tinsel/sched.h"	// process sheduler defs
 #include "tinsel/object.h"
 #include "tinsel/pid.h"	// process identifiers
+#include "tinsel/spriter.h"
 #include "tinsel/tinsel.h"
 
 // TODO(peterkohaut) remove
@@ -236,7 +237,7 @@ void Background::DrawBackgnd() {
 
 			if (IntersectRectangle(rcPlayClip, pPlay->rcClip, *r))
 				// redraw all objects within this clipping rect
-				UpdateClipRect(&pPlay->pDispList, &ptWin,	&rcPlayClip);
+				UpdateClipRect(&pPlay->pDispList, &ptWin, &rcPlayClip);
 		}
 	}
 
@@ -247,6 +248,8 @@ void Background::DrawBackgnd() {
 
 	//TODO(peterkohaut) remove
 	// drawpolys();
+
+	// reset zbuffer?
 
 	// update the screen within the clipping rectangles
 	for (RectList::const_iterator r = clipRects.begin(); r != clipRects.end(); ++r) {

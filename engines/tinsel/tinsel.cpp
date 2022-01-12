@@ -1024,11 +1024,12 @@ Common::Error TinselEngine::run() {
 		Graphics::PixelFormat noirFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
 		_screenSurface.create(width, height, noirFormat);
 
-		// initGraphics(width, screenHeight, &noirFormat);
-
+#if 0 // sw only
+		initGraphics(width, screenHeight, &noirFormat);
+#else
 		initGraphics3d(width, screenHeight);
 		InitGL();
-
+#endif
 		_spriter = new Spriter();
 		_spriter->Init(width, height);
 	} else if (getGameID() == GID_DW2) {
