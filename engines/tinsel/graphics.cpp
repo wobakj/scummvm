@@ -27,9 +27,11 @@
 #include "tinsel/scene.h"
 #include "tinsel/tinsel.h"
 #include "tinsel/scn.h"
+#include "tinsel/spriter.h"
 
 #include "common/textconsole.h"
-#if USE_OPENGL_GAME || USE_OPENGL_SHADERS
+
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
 #include "graphics/opengl/system_headers.h"
 #endif
 
@@ -44,7 +46,7 @@ namespace Tinsel {
 
 extern uint8 g_transPalette[MAX_COLORS];
 
-#if USE_OPENGL_GAME || USE_OPENGL_SHADERS
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
 	GLuint *_surfaceTexture;
 #endif
 
@@ -1074,33 +1076,34 @@ void UpdateScreenRect(const Common::Rect &pClip) {
 void UpdateScreen() {
 	if (g_useGL) {
 		// No need to redraw when nothing has changed
-		if (!g_screenUpdated) return;
-#if USE_OPENGL_GAME || USE_OPENGL_SHADERS
+		// if (!g_screenUpdated) return;
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
 		Graphics::Surface &screen = _vm->screen();
 
+
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClearDepth(1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		glMatrixMode(GL_PROJECTION);
-		glPushMatrix();
 		glLoadIdentity();
 		glOrtho(0, 1.0, 1.0, 0, 0, 1);
 
 		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
 		glLoadIdentity();
 
 		glMatrixMode(GL_TEXTURE);
-		glPushMatrix();
 		glLoadIdentity();
 
 		glDisable(GL_LIGHTING);
-		glEnable(GL_TEXTURE_2D);
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_ALPHA_TEST);
 		glDepthMask(GL_FALSE);
 
+		glEnable(GL_TEXTURE_2D);
+
 		glBindTexture(GL_TEXTURE_2D, g_screenTexture);
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, screen.w, screen.h, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, const_cast<void *>(screen.getPixels()));
-
-		glColor4f(1.0, 1.0, 1.0, 1.0);
 
 		glBegin(GL_QUADS);
 			glTexCoord2f(0.0, 0.0);
@@ -1115,8 +1118,10 @@ void UpdateScreen() {
 			glTexCoord2f(0.0, 1.0);
 			glVertex2f(0.0, 1.0);
 		glEnd();
-
 		glBindTexture(GL_TEXTURE_2D, 0);
+		glDisable(GL_TEXTURE_2D);
+
+		_vm->_spriter->RenderModel(_vm->_spriter->_modelMain);
 
 		g_screenUpdated = false;
 	}
@@ -1126,7 +1131,7 @@ void UpdateScreen() {
 
 
 void InitGL() {
-#if USE_OPENGL_GAME || USE_OPENGL_SHADERS
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
 	Graphics::Surface &screen = _vm->screen();
 
 	glGenTextures(1, &g_screenTexture);
