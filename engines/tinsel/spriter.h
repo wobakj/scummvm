@@ -202,7 +202,11 @@ private:
 
 	View _view;
 
+	Common::Array<uint8> _palette;
+	Common::Array<uint8> _textureData;
+
 #if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
+	bool _textureGenerated;
 	GLuint _texture[4];
 #endif
 
@@ -211,11 +215,16 @@ public:
 	Model _modelShadow;
 
 public:
+	Spriter();
+	virtual ~Spriter();
+
 	void Init(int width, int height);
 	void SetCamera(short rotX,short rotY,short rotZ,int posX,int posY,int posZ,int cameraAp);
 	void TransformSceneXYZ(int x, int y, int z, int& xOut, int& yOut);
 	void LoadModel(const Common::String& modelName, const Common::String& textureName);
 	void RenderModel(Model& model);
+
+	void UpdatePalette(SCNHANDLE hPalette);
 
 private:
 	const Math::Matrix4& MatrixCurrent() const;
@@ -237,6 +246,8 @@ private:
 	void LoadRBH(const Common::String& modelName, RBH& rbh);
 	void LoadVMC(const Common::String& textureName);
 
+	void UpdateTextures();
+
 	Meshes LoadMeshes(RBH rbh, uint table1, uint index1, uint frame);
 	VecFTables LoadTableVector3f(RBH rbh, uint table, uint offset);
 	VecFTables LoadTableVector3i(RBH rbh, uint table, uint offset);
@@ -248,9 +259,8 @@ private:
 	void FindSimilarVertices(Mesh& mesh, Vertices3f& verticesTransformed, Common::Array<uint16>& sameVertices) const;
 	void MergeVertices(Mesh& mesh, Common::Array<uint16>& sameVertices);
 
-	void TransformAndRenderMesh(Mesh& mesh, Vertices3f& verticesTransformed);
 	void TransformMesh(Mesh& mesh, Vertices3f& verticesTransformed);
-	void RenderMeshParts(Mesh& mesh, Vertices3f& verticesTransformed);
+	void RenderMesh(Mesh& mesh, Vertices3f& verticesTransformed);
 	void RenderMeshPartColor(MeshPart& part, Vertices3f& verticesTransformed);
 	void RenderMeshPartTexture(MeshPart& part, Vertices3f& verticesTransformed);
 };

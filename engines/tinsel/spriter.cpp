@@ -24,6 +24,9 @@
 
 #include "tinsel/spriter.h"
 
+#include "tinsel/handle.h"
+#include "tinsel/tinsel.h"
+
 #include "common/memstream.h"
 #include "common/textconsole.h"
 #include "common/rect.h"
@@ -33,6 +36,16 @@
 #include "math/quat.h"
 
 namespace Tinsel {
+
+Spriter::Spriter() {
+	_textureGenerated = false;
+}
+
+Spriter::~Spriter() {
+	if (_textureGenerated) {
+		glDeleteTextures(4, _texture);
+	}
+}
 
 const Math::Matrix4& Spriter::MatrixCurrent() const {
 	return _currentMatrix->top();
@@ -89,7 +102,6 @@ void Spriter::SetViewport(int ap) {
 void Spriter::Init(int width, int height) {
 	_currentMatrix = &_modelMatrix;
 	_meshShadow.resize(50);
-
 
 	_view.screenRect.left   = 0;
 	_view.screenRect.top	= 0;
@@ -324,16 +336,15 @@ void Spriter::LoadVMC(const Common::String& textureName) {
 	f.open(filename);
 
 	int16 buffer[4];
-	buffer[0] = f.readSint16LE();
-	buffer[1] = f.readSint16LE();
-	buffer[2] = f.readSint16LE();
-	buffer[3] = f.readSint16LE();
 
-	uint texCount = 4;
-
-	Common::Array<uint8> vmc(texCount * 65536);
+	_textureData.resize(4 * 256 * 256);
 
 	while (true) {
+		buffer[0] = f.readSint16LE();
+		buffer[1] = f.readSint16LE();
+		buffer[2] = f.readSint16LE();
+		buffer[3] = f.readSint16LE();
+
 		if ((buffer[3] | buffer[0] | buffer[2] | buffer[1]) == 0) break;
 
 		int a = buffer[1];
@@ -358,35 +369,81 @@ void Spriter::LoadVMC(const Common::String& textureName) {
 
 		uint pos = (((aAdj & 0x1ff) * 128 + (bAdj & 0xffff) & 0xffff) * 2) + (texId * 65536);
 
-		f.read(vmc.data() + pos, size);
-
-		buffer[0] = f.readSint16LE();
-		buffer[1] = f.readSint16LE();
-		buffer[2] = f.readSint16LE();
-		buffer[3] = f.readSint16LE();
+		f.read(_textureData.data() + pos, size);
 	}
 
+	UpdateTextures();
+}
+
+void Spriter::UpdateTextures() {
+	if (_textureGenerated) {
+		glDeleteTextures(4, _texture);
+	}
 
 	glGenTextures(4, _texture);
 	Common::Array<uint8> tex(256*256*3);
-	for (uint i = 0; i < texCount; ++i)	{
-		for (uint j = 0; j < 256 * 256; ++j)
-		{
-			tex[(j * 3) + 0] = vmc[(i * 65536) + j];
-			tex[(j * 3) + 1] = vmc[(i * 65536) + j];
-			tex[(j * 3) + 2] = vmc[(i * 65536) + j];
+
+	bool hasPalette = _palette.size() > 0;
+
+	for (uint i = 0; i < 4; ++i) {
+		for (uint j = 0; j < 256 * 256; ++j) {
+			uint32 index = _textureData[(i * 65536) + j];
+			if (hasPalette) {
+				tex[(j * 3) + 0] = _palette[(index * 3) + 0];
+				tex[(j * 3) + 1] = _palette[(index * 3) + 1];
+				tex[(j * 3) + 2] = _palette[(index * 3) + 2];
+			} else {
+				tex[(j * 3) + 0] = index;
+				tex[(j * 3) + 1] = index;
+				tex[(j * 3) + 2] = index;
+			}
 		}
 		glBindTexture(GL_TEXTURE_2D, _texture[i]);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 256, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, tex.data());
-		// glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 256, 256, 0, GL_RED, GL_UNSIGNED_BYTE, &vmc[(i * 65536)]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+	_textureGenerated = true;
 }
 
+void Spriter::UpdatePalette(SCNHANDLE hPalette) {
+	uint32 paletteHeaderSize = 2 + 2;
+	uint32 paletteBodySize = 22 * 256 * sizeof(uint16);
+
+	/* Select only one palette as they are sorded by light intensity */
+	uint32 paletteId = 21;
+
+	Graphics::PixelFormat paletteFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
+
+	Common::MemoryReadStream s(_vm->_handle->LockMem(hPalette), paletteHeaderSize + paletteBodySize);
+
+	uint zero = s.readUint16LE();
+	uint size = s.readUint16LE();
+
+	if (zero == 0 && size == paletteBodySize) {
+		_palette.resize(256 * 3);
+
+		s.skip(paletteId * sizeof(uint16) * 256);
+
+		for (uint i = 0; i < 256; ++i) {
+			uint16 color = s.readUint16LE();
+			uint8 r, g, b;
+			paletteFormat.colorToRGB(color, r, g, b);
+
+			_palette[(i * 3) + 0] = r;
+			_palette[(i * 3) + 1] = g;
+			_palette[(i * 3) + 2] = b;
+		}
+
+		UpdateTextures();
+	} else {
+		warning("unknown palette data");
+	}
+}
 
 Meshes Spriter::LoadMeshes(RBH rbh, uint table1, uint index1, uint frame) {
 	assert(table1 < rbh.size());
@@ -623,7 +680,8 @@ void Spriter::RunRenderProgram(Model &model, bool initial) {
 					FindSimilarVertices(mesh, vertices, sameVertices);
 					MergeVertices(mesh, sameVertices);
 				} else {
-					TransformAndRenderMesh(mesh, vertices);
+					TransformMesh(mesh, vertices);
+					RenderMesh(mesh, vertices);
 				}
 
 				break;
@@ -714,19 +772,19 @@ void Spriter::RunRenderProgram(Model &model, bool initial) {
 	} while (!stop);
 }
 
-void Spriter::FindSimilarVertices(Mesh& mesh, Vertices3f& verticesTransformed, Common::Array<uint16>& sameVertices) const {
+void Spriter::FindSimilarVertices(Mesh& mesh, Vertices3f& vertices, Common::Array<uint16>& sameVertices) const {
 	const Math::Matrix4 &m = MatrixCurrent();
 
-	uint i_start = verticesTransformed.size();
+	uint i_start = vertices.size();
 	for (uint i = 0; i < mesh.vertices.size(); ++i) {
 		Math::Vector3d& vIn = mesh.vertices[i];
 
 		Math::Vector3d vOut = vIn;
 		m.transform(&vOut, true);
-		verticesTransformed.push_back(vOut);
+		vertices.push_back(vOut);
 
-		for (uint j = 0; j < verticesTransformed.size() - 1; ++j) {
-			float d = vOut.getDistanceTo(verticesTransformed[j]);
+		for (uint j = 0; j < vertices.size() - 1; ++j) {
+			float d = vOut.getDistanceTo(vertices[j]);
 			// if (d < 0.01f) {
 			if (d < .1f) { // this is too big maybe?
 				sameVertices[i_start + i] = j + 1; // 0 is reserved for not found
@@ -749,29 +807,23 @@ void Spriter::MergeVertices(Mesh &mesh, Common::Array<uint16>& sameVertices) {
 	}
 }
 
-void Spriter::TransformAndRenderMesh(Mesh& mesh, Vertices3f& verticesTransformed) {
-	TransformMesh(mesh, verticesTransformed);
-	RenderMeshParts(mesh, verticesTransformed);
-}
-
-
-void Spriter::TransformMesh(Mesh& mesh, Vertices3f& verticesTransformed) {
+void Spriter::TransformMesh(Mesh& mesh, Vertices3f& vertices) {
 	// transformed vertices from previous meshes might be in the current mesh, hence they need to be transformed manually
 	const Math::Matrix4 &m = MatrixCurrent();
 
 	for (auto& vIn : mesh.vertices) {
 		Math::Vector3d vOut = vIn;
 		m.transform(&vOut, true);
-		verticesTransformed.push_back(vOut);
+		vertices.push_back(vOut);
 	}
 }
 
-void Spriter::RenderMeshParts(Mesh& mesh, Vertices3f& verticesTransformed) {
+void Spriter::RenderMesh(Mesh& mesh, Vertices3f& vertices) {
 	for(auto& part : mesh.parts) {
 		switch(part.type) {
 		case 0:
 		case 1:
-			RenderMeshPartColor(part, verticesTransformed);
+			RenderMeshPartColor(part, vertices);
 			break;
 		// case 0x02:
 		//	 RenderMeshPart2(spriter,transformedVertices,(PRIMITIVE_23 *)submesh->data, submesh->primitiveCount, viewport);
@@ -781,47 +833,57 @@ void Spriter::RenderMeshParts(Mesh& mesh, Vertices3f& verticesTransformed) {
 		//	 break;
 		case 4:
 		case 5:
-			RenderMeshPartTexture(part, verticesTransformed);
+			RenderMeshPartTexture(part, vertices);
 			break;
 		}
 	}
 	return;
 }
 
-void Spriter::RenderMeshPartColor(MeshPart& part, Vertices3f& verticesTransformed) {
+void Spriter::RenderMeshPartColor(MeshPart& part, Vertices3f& vertices) {
 	if(!part.cull) glEnable(GL_CULL_FACE);
-	glBegin(GL_TRIANGLE_FAN);
 	for (auto& prim : part.primitives) {
 		GLubyte r = (prim.color >> 0) & 0xff;
 		GLubyte g = (prim.color >> 8) & 0xff;
 		GLubyte b = (prim.color >> 16) & 0xff;
 
-		glColor3ub(r,g,b);
+		glColor3ub(r, g, b);
 
+		glBegin(GL_TRIANGLE_FAN);
 		for (uint32 i = 0; i < part.numVertices; ++i)
 		{
 			uint32 index = prim.indices[i];
-			Math::Vector3d& v = verticesTransformed[index];
+			Math::Vector3d& v = vertices[index];
 			glVertex3f(v.x(), v.y(), v.z());
 		}
+		glDisable(GL_CULL_FACE);
 	}
 	glEnd();
-	glDisable(GL_CULL_FACE);
 }
 
-void Spriter::RenderMeshPartTexture(MeshPart& part, Vertices3f& verticesTransformed) {
+void Spriter::RenderMeshPartTexture(MeshPart& part, Vertices3f& vertices) {
 	if (!part.cull) glEnable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_2D);
+
 	glColor3f(1.0f, 1.0f, 1.0f);
 
 	for (auto& prim : part.primitives) {
 		glBindTexture(GL_TEXTURE_2D, _texture[prim.texture]);
 
+		/* Calculate normal, as the supplied ones are not correct */
+		Math::Vector3d v0 = vertices[prim.indices[0]];
+		Math::Vector3d v1 = vertices[prim.indices[1]];
+		Math::Vector3d v2 = vertices[prim.indices[2]];
+
+		Math::Vector3d n = Math::Vector3d::crossProduct(v2 - v0, v1 - v0);
+		n.normalize();
+
 		glBegin(GL_TRIANGLE_FAN);
 		for (uint i = 0; i < part.numVertices; ++i) {
 			uint index = prim.indices[i];
-			Math::Vector3d& v = verticesTransformed[index];
+			Math::Vector3d& v = vertices[index];
 			glTexCoord2f(prim.uv[i].getX() / 255.0f, prim.uv[i].getY() / 255.0f);
+			glNormal3f(n.x(), n.y(), n.z());
 			glVertex3f(v.x(), v.y(), v.z());
 		}
 		glEnd();
@@ -851,20 +913,15 @@ void Spriter::RenderModel(Model &model) {
 	glDepthFunc(GL_LESS);
 	glDepthMask(GL_TRUE);
 
-	glTranslatef(0, 0, -0.5f);
+	glTranslatef(0, 0.5, -0.5f);
 
-
-	// glTranslatef(0.5f, 0.75f, -0.05f);
-
-	// glTranslatef(0, 0, -100.0f);
-
-	glRotatef(-30.0f, 1.0f, 0.0f, 0.0f);
+	// glRotatef(-15.0f, 1.0f, 0.0f, 0.0f);
 
 	static float angle2  = 0;
 	glRotatef(angle2, 0.0f, 1.0f, 0.0f);
 	angle2 += 1.f;
 
-	float f = 1.0f / 100.0f;
+	float f = 1.0f / 50.0f;
 	glScalef(f, f, f);
 
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
