@@ -58,6 +58,7 @@
 #include "tinsel/scn.h"
 #include "tinsel/scroll.h"
 #include "tinsel/sound.h"
+#include "tinsel/spriter.h"
 #include "tinsel/strres.h"
 #include "tinsel/sysvar.h"
 #include "tinsel/text.h"
@@ -152,7 +153,7 @@ enum MASTER_LIB_CODES {
 	TRYPLAYSAMPLE, UNDIMMUSIC, UNHOOKSCENE, UNTAGACTOR, VIBRATE, WAITFRAME, WAITKEY,
 	WAITSCROLL, WAITTIME, WALK, WALKED, WALKEDPOLY, WALKEDTAG, WALKINGACTOR, WALKPOLY,
 	WALKTAG, WALKXPOS, WALKYPOS, WHICHCD, WHICHINVENTORY, ZZZZZZ, DEC3D, DECINVMAIN,
-	ADDNOTEBOOK, ADDINV3, ADDCONV, SET3DTEXTURE, FADEMUSIC, VOICEOVER, SETVIEW, HIGHEST_LIBCODE
+	ADDNOTEBOOK, ADDINV3, ADDCONV, SET3DPALETTE, FADEMUSIC, VOICEOVER, SETVIEW, HIGHEST_LIBCODE
 };
 
 static const MASTER_LIB_CODES DW1DEMO_CODES[] = {
@@ -2696,6 +2697,10 @@ static void SendTag(CORO_PARAM, int tagno, TINSEL_EVENT event, HPOLYGON hp, int 
 	}
 }
 
+static void Set3DPalette(SCNHANDLE hPalette) {
+	_vm->_spriter->UpdatePalette(hPalette);
+}
+
 /**
  * Un-kill an actor.
  */
@@ -4534,7 +4539,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3], pp[4], pp[5], pp[6], pp[7]);
 		break;
 	case 214:
-		mapping = NoirMapping{"SET3DTEXTURE", SET3DTEXTURE, 1};
+		mapping = NoirMapping{"SET3DPALETTE", SET3DPALETTE, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
@@ -5591,9 +5596,9 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 		}
 		return -1;
 
-	case SET3DTEXTURE:
+	case SET3DPALETTE:
 		// Noir only
-		warning("TODO: Implement SET3DTEXTURE(0x%08X)", pp[0]);
+		Set3DPalette(pp[0]);
 		return -1;
 
 	case SETACTOR:

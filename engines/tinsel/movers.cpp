@@ -1061,8 +1061,7 @@ void StopMover(PMOVER pMover) {
 	DoMoveActor(pMover);
 }
 
-void Declare3D(int ano, SCNHANDLE hModelName, SCNHANDLE hTextureName)
-{
+void Declare3D(int ano, SCNHANDLE hModelName, SCNHANDLE hTextureName) {
 	static SCNHANDLE hModelNameLoaded = 0;
 	PMOVER pMover = GetMover(ano);
 	assert(pMover != nullptr);
@@ -1071,14 +1070,6 @@ void Declare3D(int ano, SCNHANDLE hModelName, SCNHANDLE hTextureName)
 	pMover->type = MOVER_3D;
 	pMover->hModelName = hModelName;
 	pMover->hTextureName = hTextureName;
-
-	// if (_hModelNameLoaded == 0) {
-	// 	_hModelNameLoaded = hModelName;
-	// 	const char* modelName = (const char *)_vm->_handle->LockMem(hModelName);
-	// 	const char* textureName = (const char *)_vm->_handle->LockMem(hTextureName);
-	// 	LoadModels(modelName, textureName);
-	// }
-	//assert(_hModelNameLoaded == hModelName);
 
 	if (hModelNameLoaded == 0) {
 		hModelNameLoaded = hModelName;
