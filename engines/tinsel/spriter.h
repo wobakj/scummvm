@@ -256,13 +256,14 @@ private:
 	// Rendering
 	void RunRenderProgram(Model &model, bool initial);
 
-	void FindSimilarVertices(Mesh& mesh, Vertices3f& verticesTransformed, Common::Array<uint16>& sameVertices) const;
+	void FindSimilarVertices(Mesh& mesh, Vertices3f& vertices, Common::Array<uint16>& sameVertices) const;
 	void MergeVertices(Mesh& mesh, Common::Array<uint16>& sameVertices);
 
-	void TransformMesh(Mesh& mesh, Vertices3f& verticesTransformed);
-	void RenderMesh(Mesh& mesh, Vertices3f& verticesTransformed);
-	void RenderMeshPartColor(MeshPart& part, Vertices3f& verticesTransformed);
-	void RenderMeshPartTexture(MeshPart& part, Vertices3f& verticesTransformed);
+	void TransformMesh(Mesh& mesh, Vertices3f& vertices);
+	void CalculateNorms(Mesh& mesh, Vertices3f& vertices, Vertices3f &normals);
+	void RenderMesh(Mesh& mesh, Vertices3f& vertices, Vertices3f &normals);
+	void RenderMeshPartColor(MeshPart& part, Vertices3f& vertices, Vertices3f &normals);
+	void RenderMeshPartTexture(MeshPart& part, Vertices3f& vertices, Vertices3f &normals);
 };
 
 } // End of namespace Tinsel

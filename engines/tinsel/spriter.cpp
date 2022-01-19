@@ -402,8 +402,12 @@ void Spriter::UpdateTextures() {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 256, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, tex.data());
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -638,8 +642,8 @@ void Spriter::RunRenderProgram(Model &model, bool initial) {
 	Vertices3f vertices;
 	vertices.reserve(model.tables.meshes.vertexCount);
 
-	// Vertices3f normals;
-	// normals.reserve(model.tables.meshes.normalCount);
+	Vertices3f normals;
+	normals.resize(model.tables.meshes.normalCount);
 
 	Common::Array<uint16> sameVertices;
 	sameVertices.resize(model.tables.meshes.vertexCount);
@@ -681,7 +685,8 @@ void Spriter::RunRenderProgram(Model &model, bool initial) {
 					MergeVertices(mesh, sameVertices);
 				} else {
 					TransformMesh(mesh, vertices);
-					RenderMesh(mesh, vertices);
+					CalculateNorms(mesh, vertices, normals);
+					RenderMesh(mesh, vertices, normals);
 				}
 
 				break;
@@ -818,12 +823,28 @@ void Spriter::TransformMesh(Mesh& mesh, Vertices3f& vertices) {
 	}
 }
 
-void Spriter::RenderMesh(Mesh& mesh, Vertices3f& vertices) {
+void Spriter::CalculateNorms(Mesh& mesh, Vertices3f& vertices, Vertices3f &normals) {
+	for (auto& part : mesh.parts) {
+		for (auto& prim : part.primitives) {
+			Math::Vector3d v0 = vertices[prim.indices[0]];
+			Math::Vector3d v1 = vertices[prim.indices[1]];
+			Math::Vector3d v2 = vertices[prim.indices[2]];
+
+			Math::Vector3d norm = Math::Vector3d::crossProduct(v2 - v0, v1 - v0).getNormalized();
+
+				for (uint i = 0; i < part.numVertices; ++i) {
+				normals[prim.indices[i]] += norm;
+			}
+		}
+	}
+}
+
+void Spriter::RenderMesh(Mesh& mesh, Vertices3f& vertices, Vertices3f &normals) {
 	for(auto& part : mesh.parts) {
 		switch(part.type) {
 		case 0:
 		case 1:
-			RenderMeshPartColor(part, vertices);
+			RenderMeshPartColor(part, vertices, normals);
 			break;
 		// case 0x02:
 		//	 RenderMeshPart2(spriter,transformedVertices,(PRIMITIVE_23 *)submesh->data, submesh->primitiveCount, viewport);
@@ -833,14 +854,14 @@ void Spriter::RenderMesh(Mesh& mesh, Vertices3f& vertices) {
 		//	 break;
 		case 4:
 		case 5:
-			RenderMeshPartTexture(part, vertices);
+			RenderMeshPartTexture(part, vertices, normals);
 			break;
 		}
 	}
 	return;
 }
 
-void Spriter::RenderMeshPartColor(MeshPart& part, Vertices3f& vertices) {
+void Spriter::RenderMeshPartColor(MeshPart& part, Vertices3f& vertices, Vertices3f &normals) {
 	if(!part.cull) glEnable(GL_CULL_FACE);
 	for (auto& prim : part.primitives) {
 		GLubyte r = (prim.color >> 0) & 0xff;
@@ -853,6 +874,10 @@ void Spriter::RenderMeshPartColor(MeshPart& part, Vertices3f& vertices) {
 		for (uint32 i = 0; i < part.numVertices; ++i)
 		{
 			uint32 index = prim.indices[i];
+
+			Math::Vector3d n = normals[index].getNormalized();
+			glNormal3f(n.x(), n.y(), n.z());
+
 			Math::Vector3d& v = vertices[index];
 			glVertex3f(v.x(), v.y(), v.z());
 		}
@@ -861,7 +886,7 @@ void Spriter::RenderMeshPartColor(MeshPart& part, Vertices3f& vertices) {
 	glEnd();
 }
 
-void Spriter::RenderMeshPartTexture(MeshPart& part, Vertices3f& vertices) {
+void Spriter::RenderMeshPartTexture(MeshPart& part, Vertices3f& vertices, Vertices3f &normals) {
 	if (!part.cull) glEnable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_2D);
 
@@ -875,15 +900,18 @@ void Spriter::RenderMeshPartTexture(MeshPart& part, Vertices3f& vertices) {
 		Math::Vector3d v1 = vertices[prim.indices[1]];
 		Math::Vector3d v2 = vertices[prim.indices[2]];
 
-		Math::Vector3d n = Math::Vector3d::crossProduct(v2 - v0, v1 - v0);
-		n.normalize();
+		// Math::Vector3d n = Math::Vector3d::crossProduct(v2 - v0, v1 - v0).getNormalized();
 
 		glBegin(GL_TRIANGLE_FAN);
+		// for (int i = part.numVertices - 1; i >= 0; --i) {
 		for (uint i = 0; i < part.numVertices; ++i) {
 			uint index = prim.indices[i];
-			Math::Vector3d& v = vertices[index];
-			glTexCoord2f(prim.uv[i].getX() / 255.0f, prim.uv[i].getY() / 255.0f);
+			glTexCoord2f(prim.uv[i].getX() / 256.0f, prim.uv[i].getY() / 256.0f);
+
+			Math::Vector3d n = normals[index].getNormalized();
 			glNormal3f(n.x(), n.y(), n.z());
+
+			Math::Vector3d& v = vertices[index];
 			glVertex3f(v.x(), v.y(), v.z());
 		}
 		glEnd();
@@ -904,25 +932,44 @@ void Spriter::LoadModel(const Common::String &modelName, const Common::String &t
 void Spriter::RenderModel(Model &model) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(-1.0, 1.0, 1.0, -1.0, 0, 1.0);
+	// glOrtho(-1.0, 1.0, 1.0, -1.0, 0, 1.0);
+
+	float near = 1.0f;
+	float far = 100.0f;
+	float ratio = 3.0f / 4.0f;
+	// float fov = M_PI / 2.0f;
+	// float right = nclip * tan(fov / 2.0f * (M_PI / 180.0f));
+	float right = 1.0f;
+	glFrustum(-right, right, -right * ratio, right * ratio, near, far);
+
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
+	glShadeModel(GL_SMOOTH);
+
+	glEnable(GL_LIGHTING);
+
+    GLfloat light_position[] = { 10.0, 10.0, 10.0, 1.0 };
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 10.0f);
+	glEnable(GL_LIGHT0);
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glDepthMask(GL_TRUE);
 
-	glTranslatef(0, 0.5, -0.5f);
+	glTranslatef(0, -3.0f, -5.f);
 
-	// glRotatef(-15.0f, 1.0f, 0.0f, 0.0f);
+
+	// glRotatef(15.0f, 1.0f, 0.0f, 0.0f);
 
 	static float angle2  = 0;
 	glRotatef(angle2, 0.0f, 1.0f, 0.0f);
-	angle2 += 1.f;
+	angle2 += 2.f;
 
-	float f = 1.0f / 50.0f;
-	glScalef(f, f, f);
+	float f = 1.0f / 10.0f;
+	glScalef(f, -f, f);
 
 	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
