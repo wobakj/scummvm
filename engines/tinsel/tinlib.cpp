@@ -4275,15 +4275,40 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 	// this is convenient for debug.
 	NoirMapping mapping;
 	switch (libCode) {
+	case 0:
+		error("NoFunction isn't a real function");
+		break;
+	case 1:
+		mapping = NoirMapping{"ACTORBRIGHTNESS", ACTORBRIGHTNESS, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d, 0x%08X)", mapping.name, pp[0], pp[1]);
+	case 2:
+		mapping = NoirMapping{"ACTORDIRECTION", ACTORDIRECTION, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 	case 3:
 		mapping = NoirMapping{"ACTORPRIORITY", ACTORPRIORITY, 2};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d, 0x%08X)", mapping.name, pp[0], pp[1]);
 		break;
+	case 4:
+		mapping = NoirMapping{"ACTORREF", ACTORREF, 0};
+		debug(7, "%s()", mapping.name);
+		break;
 	case 5:
 		mapping = NoirMapping{"ACTORRGB", ACTORRGB, 2};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 6:
+		mapping = NoirMapping{"ACTORXPOS", ACTORXPOS, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 7:
+		mapping = NoirMapping{"ACTORYPOS", ACTORYPOS, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
 	case 8:
 		mapping = NoirMapping{"ADDNOTEBOOK", ADDNOTEBOOK, 1};
@@ -4310,20 +4335,65 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
-	case 37:
-		mapping = NoirMapping{"CONTROL", CONTROL, 1};
-		pp -= mapping.numArgs - 1;
-		debug(7, "%s(%08X)", mapping.name, pp[0]);
+	case 25:
+		// nop
 		break;
 	case 26:
 		mapping = NoirMapping{"CALLTAG", CALLTAG, 2};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
 		break;
+	case 27:
+		mapping = NoirMapping{"CAMERA", CAMERA, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
 	case 28:
 		mapping = NoirMapping{"CDCHANGESCENE", CDCHANGESCENE, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 29:
+		mapping = NoirMapping{"CDDOCHANGE", CDDOCHANGE, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 30:
+		mapping = NoirMapping{"CDENDACTOR", CDENDACTOR, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 31:
+		mapping = NoirMapping{"CDLOAD", CDLOAD, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 32:
+		mapping = NoirMapping{"CDPLAY", CDPLAY, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 33: // Disassembly just returns -1 for this opcode, so map it to FRAMEGRAB
+		mapping = NoirMapping{"FRAMEGRAB", FRAMEGRAB, 0};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s()", mapping.name);
+		break;
+	case 34:
+		mapping = NoirMapping{"CLEARHOOKSCENE", CLEARHOOKSCENE, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 37:
+		mapping = NoirMapping{"CONTROL", CONTROL, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%08X)", mapping.name, pp[0]);
+		break;
+	case 38:
+		mapping = NoirMapping{"CONVERSATION", CONVERSATION, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%08X)", mapping.name, pp[0]);
+		break;
+	case 40:
+		mapping = NoirMapping{"CURSOR", CURSOR, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%08X)", mapping.name, pp[0]);
 		break;
 	case 41:
 		mapping = NoirMapping{"CURSORXPOS", CURSORXPOS, 0};
@@ -4368,19 +4438,93 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
+	case 53:
+		mapping = NoirMapping{"DROP", DROP, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 54:
+		mapping = NoirMapping{"DROPEVERYTHING", DROPEVERYTHING, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 55:
+		mapping = NoirMapping{"DROPOUT", DROPOUT, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 57:
+		mapping = NoirMapping{"ENABLEMENU", ENABLEMENU, 0};
+		debug(7, "%s()", mapping.name);
+		break;
 	case 58:
 		mapping = NoirMapping{"ENDACTOR", ENDACTOR, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
+	case 59:
+		mapping = NoirMapping{"ESCAPEOFF", ESCAPEOFF, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 60:
+		mapping = NoirMapping{"ESCAPEON", ESCAPEON, 0};
+		debug(7, "%s()", mapping.name);
+		break;
 	case 61:
 		mapping = NoirMapping{"EVENT", EVENT, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 62:
+		mapping = NoirMapping{"FACETAG", FACETAG, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 63:
+		mapping = NoirMapping{"FADEIN", FADEIN, 0};
 		debug(7, "%s()", mapping.name);
 		break;
 	case 64:
 		mapping = NoirMapping{"FADEMUSIC", FADEMUSIC, 2};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%08X, %d)", mapping.name, pp[0], pp[1]);
+		break;
+	case 65:
+		mapping = NoirMapping{"FADEOUT", FADEOUT, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 66: // Disassembly just returns -1 for this opcode, so map it to FRAMEGRAB
+		mapping = NoirMapping{"FRAMEGRAB", FRAMEGRAB, 0};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s()", mapping.name);
+		break;
+	case 67:
+		mapping = NoirMapping{"FREEZECURSOR", FREEZECURSOR, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 68:
+		mapping = NoirMapping{"GETINVLIMIT", GETINVLIMIT, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 69:
+		mapping = NoirMapping{"GHOST", GHOST, 3};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2]);
+		break;
+	case 70:
+		mapping = NoirMapping{"GLOBALVAR", GLOBALVAR, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 71:
+		error("You'll have to ask John to put this back in!");
+	case 72:
+		mapping = NoirMapping{"HAILSCENE", HAILSCENE, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 73:
+		mapping = NoirMapping{"HASRESTARTED", HASRESTARTED, 0};
+		debug(7, "%s()", mapping.name);
 		break;
 	case 74:
 		mapping = NoirMapping{"HAVE", HAVE, 1};
