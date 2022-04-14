@@ -4530,30 +4530,102 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
+	case 78:
+		mapping = NoirMapping{"HIDEBLOCK", HIDEBLOCK, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 79:
+		mapping = NoirMapping{"HIDEEFFECT", HIDEEFFECT, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 80:
+		mapping = NoirMapping{"HIDEPATH", HIDEPATH, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 81:
+		mapping = NoirMapping{"HIDEREFER", HIDEREFER, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 82: // hide poly type 6
+		error("Unmapped libCode %d", libCode);
 	case 83:
 		mapping = NoirMapping{"HIDETAG", HIDETAG, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
+	case 84:
+		mapping = NoirMapping{"HOLD", HOLD, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 85:
+		mapping = NoirMapping{"SETHOOKSCENE", SETHOOKSCENE, 3};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2]);
+		break;
 	case 86:
-		mapping = NoirMapping{"OP86", ZZZZZZ, 2};
+		mapping = NoirMapping{"NOTEBOOKADDHYPERLINK", ZZZZZZ, 2};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 87:
+		mapping = NoirMapping{"IDLETIME", IDLETIME, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 88:
+		mapping = NoirMapping{"INSTANTSCROLL", INSTANTSCROLL, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 89:
+		mapping = NoirMapping{"INVENTORY", INVENTORY, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 91:
+		mapping = NoirMapping{"INWHICHINV", INWHICHINV, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 92:
+		mapping = NoirMapping{"KILLACTOR", KILLACTOR, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 93:
+		mapping = NoirMapping{"KILLGLOBALPROCESS", KILLGLOBALPROCESS, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
 	case 94:
 		mapping = NoirMapping{"KILLPROCESS", KILLPROCESS, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
+	case 95:
+		mapping = NoirMapping{"LOCALVAR", LOCALVAR, 0};
+		debug(7, "%s()", mapping.name);
+		break;
 	case 96:
 		mapping = NoirMapping{"MOVECURSOR", MOVECURSOR, 2};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d, %d)", mapping.name, pp[0], pp[1]);
 		break;
+	case 97: // MoveTag with additional logic
+		error("Unmapped libCode %d", libCode);
+	case 98: // MoveTagTo with additional logic
+		error("Unmapped libCode %d", libCode);
 	case 99:
 		mapping = NoirMapping{"NEWSCENE", NEWSCENE, 3};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2]);
+		break;
+	case 109:
+		mapping = NoirMapping{"OBJECTHELD", OBJECTHELD, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
 	case 110:
 		mapping = NoirMapping{"PLAY", PLAY, 2};
@@ -4575,13 +4647,55 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
+	case 115:
+		mapping = NoirMapping{"POINTTAG", POINTTAG, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 116:
+		mapping = NoirMapping{"POSTACTOR", POSTACTOR, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 117:
+		mapping = NoirMapping{"POSTPOLY", POSTPOLY, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 118:
+		mapping = NoirMapping{"POSTGLOBALPROCESS", POSTGLOBALPROCESS, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 119:
+		mapping = NoirMapping{"POSTOBJECT", POSTOBJECT, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 120:
+		mapping = NoirMapping{"POSTPROCESS", POSTPROCESS, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
 	case 121:
 		mapping = NoirMapping{"POSTTAG", POSTTAG, 2};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
 		break;
+	case 122: // Something movie-related
+		error("Unmapped libCode %d", libCode);
+	case 123:
+		mapping = NoirMapping{"PRINT", PRINT, 5};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3], pp[4]);
+		break;
 	case 124:
 		mapping = NoirMapping{"PRINTCURSOR", PRINTCURSOR, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 125:
+		mapping = NoirMapping{"PRINTOBJECT", PRINTOBJECT, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
@@ -4590,10 +4704,39 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
+	case 127:
+		mapping = NoirMapping{"QUITGAME", QUITGAME, 0};
+		debug(7, "%s()", mapping.name);
+		break;
 	case 128:
 		mapping = NoirMapping{"RANDOM", RANDOM, 3};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d, %d, %d)", mapping.name, pp[0], pp[1], pp[2]);
+		break;
+	case 129:
+		mapping = NoirMapping{"RESETIDLETIME", RESETIDLETIME, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 130:
+		mapping = NoirMapping{"RESTARTGAME", RESTARTGAME, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 131:
+		mapping = NoirMapping{"RESTORESCENE", RESTORESCENE, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 132:
+		mapping = NoirMapping{"RESUMELASTGAME", RESUMELASTGAME, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 133:
+		mapping = NoirMapping{"RUNMODE", RUNMODE, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 134:
+		mapping = NoirMapping{"SAVESCENE", SAVESCENE, 0};
+		debug(7, "%s()", mapping.name);
 		break;
 	case 135:
 	case 221:
@@ -4602,6 +4745,68 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		mapping = NoirMapping{"SAY", SAY, 2};
 		pp -= mapping.numArgs - 2;
 		debug(7, "%s_%2Xh(%d, %d)", mapping.name, libCode, pp[0], pp[1]);
+		break;
+	case 136:
+		mapping = NoirMapping{"SAYAT", SAYAT, 5};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3], pp[4]);
+		break;
+	case 137:
+		mapping = NoirMapping{"SCREENXPOS", SCREENXPOS, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 138:
+		mapping = NoirMapping{"SCREENYPOS", SCREENYPOS, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 139: // new scroll with 1, 3 or 5 parameters
+		error("v3 SCROLL libCode %d unimplemented", libCode);
+	case 140:
+		mapping = NoirMapping{"SCROLLPARAMETERS", SCROLLPARAMETERS, 7};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3], pp[4], pp[5], pp[6]);
+		break;
+	case 141:
+		mapping = NoirMapping{"SENDACTOR", SENDACTOR, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 142:
+		mapping = NoirMapping{"SENDGLOBALPROCESS", SENDGLOBALPROCESS, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 143:
+		mapping = NoirMapping{"SENDOBJECT", SENDOBJECT, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 144:
+		mapping = NoirMapping{"SENDPROCESS", SENDPROCESS, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 145:
+		mapping = NoirMapping{"SENDTAG", SENDTAG, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 146: //called function is a nop
+		break;
+	case 147:
+		mapping = NoirMapping{"SETINVLIMIT", SETINVLIMIT, 2};
+		pp -= mapping.numArgs - 2;
+		debug(7, "%s_%2Xh(%d, %d)", mapping.name, libCode, pp[0], pp[1]);
+		break;
+	case 148:
+		mapping = NoirMapping{"SETINVSIZE", SETINVSIZE, 7};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3], pp[4], pp[5], pp[6]);
+		break;
+	case 149:
+		mapping = NoirMapping{"SETLANGUAGE", SETLANGUAGE, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
 	case 151:
 		mapping = NoirMapping{"SETSYSTEMREEL", SETSYSTEMREEL, 2};
@@ -4623,8 +4828,22 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d, 0x%08X)", mapping.name, pp[0], pp[1]);
 		break;
+	case 155:
+		mapping = NoirMapping{"SHELL", SHELL, 0};
+		debug(7, "%s()", mapping.name);
+		break;
 	case 156:
 		mapping = NoirMapping{"SHOWACTOR", SHOWACTOR, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 157:
+		mapping = NoirMapping{"SHOWBLOCK", SHOWBLOCK, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 158:
+		mapping = NoirMapping{"SHOWEFFECT", SHOWEFFECT, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
@@ -4632,6 +4851,18 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		mapping = NoirMapping{"SHOWMENU", SHOWMENU, 0};
 		debug(7, "%s()", mapping.name);
 		break;
+	case 160:
+		mapping = NoirMapping{"SHOWPATH", SHOWPATH, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 161:
+		mapping = NoirMapping{"SHOWREFER", SHOWREFER, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 162: // show poly type 6
+		error("Unmapped libCode %d", libCode);
 	case 163:
 		mapping = NoirMapping{"SHOWTAG", SHOWTAG, 1};
 		pp -= mapping.numArgs - 1;
@@ -4642,14 +4873,72 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3]);
 		break;
+	case 165:
+		mapping = NoirMapping{"STANDTAG", STANDTAG, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 166:
+		mapping = NoirMapping{"STARTGLOBALPROCESS", STARTGLOBALPROCESS, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
 	case 167:
 		mapping = NoirMapping{"STARTPROCESS", STARTPROCESS, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
+	case 170:
+		mapping = NoirMapping{"STOPSAMPLE", STOPSAMPLE, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 171:
+		mapping = NoirMapping{"STOPWALK", STOPWALK, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 172:
+		mapping = NoirMapping{"SUBTITLES", SUBTITLES, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 173:
+		mapping = NoirMapping{"SWALK", SWALK, 6};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3], pp[4], pp[5]);
+		break;
+	case 174:
+		mapping = NoirMapping{"SWALKZ", SWALKZ, 7};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3], pp[4], pp[5], pp[6]);
+		break;
 	case 175:
 		mapping = NoirMapping{"SYSTEMVAR", SYSTEMVAR, 0};
 		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	// These 4 are a fallthrough in the disassembly
+	// Assume they still have the same order for clarity of log output
+	case 176:
+		mapping = NoirMapping{"TAGTAGXPOS", TAGTAGXPOS, 0};
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 177:
+		mapping = NoirMapping{"TAGTAGYPOS", TAGTAGYPOS, 0};
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 178:
+		mapping = NoirMapping{"TAGWALKXPOS", TAGWALKXPOS, 0};
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 179:
+		mapping = NoirMapping{"TAGWALKYPOS", TAGWALKYPOS, 0};
+		debug(7, "%s(%d)", mapping.name, pp[0]);
+		break;
+	case 182:
+		mapping = NoirMapping{"TALKRGB", TALKRGB, 3};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2]);
 		break;
 	case 183:
 		mapping = NoirMapping{"TALKVIA", TALKVIA, 1};
@@ -5256,7 +5545,7 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 
 	case HIDEACTOR:
 		// Common to DW1 / DW2 / Noir
-		if (!TinselV2)
+		if (!TinselV2 && !TinselV3)
 			HideActorFn(coroParam, pp[0]);
 		else if (*pResumeState == RES_1 && pic->resumeCode == RES_WAITING) {
 			*pResumeState = RES_NOT;
@@ -5355,7 +5644,7 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 
 	case KILLACTOR:
 		// DW1 only
-		if (TinselV2)
+		if (TinselV2V3)
 			error("KillActor() was not expected to be required");
 
 		KillActor(pp[0]);
@@ -5602,7 +5891,7 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 
 	case PRINTTAG:
 		// Common to DW1 / DW2 / Noir
-		PrintTag(pic->hPoly, pp[0], TinselV2 ? pic->idActor : 0, false);
+		PrintTag(pic->hPoly, pp[0], (TinselV2 || TinselV3) ? pic->idActor : 0, false);
 		return -1;
 
 	case QUITGAME:
