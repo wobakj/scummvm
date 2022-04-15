@@ -4632,10 +4632,8 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2]);
 		break;
-	case 86:
-		mapping = NoirMapping{"NOTEBOOKADDHYPERLINK", ZZZZZZ, 2};
-		pp -= mapping.numArgs - 1;
-		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+	case 86: // 2 parameters
+		error("Unsupported libCode %d notebook_add_hyperlink", libCode);
 		break;
 	case 87:
 		mapping = NoirMapping{"IDLETIME", IDLETIME, 0};
@@ -5130,12 +5128,54 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3], pp[4]);
 		break;
+	case 199:
+		mapping = NoirMapping{"WALKED", WALKED, 3};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2]);
+		break;
+	case 200:
+		mapping = NoirMapping{"OP200_NOP", ZZZZZZ, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 201:
+		mapping = NoirMapping{"OP201_NOP", ZZZZZZ, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 202:
+		mapping = NoirMapping{"WALKINGACTOR", WALKINGACTOR, 1};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
+		break;
+	case 203:
+		mapping = NoirMapping{"WALKPOLY", WALKPOLY, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 204:
+		mapping = NoirMapping{"WALKTAG", WALKTAG, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
+		break;
+	case 205:
+		mapping = NoirMapping{"WALKXPOS", WALKXPOS, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 206:
+		mapping = NoirMapping{"WALKYPOS", WALKYPOS, 0};
+		debug(7, "%s()", mapping.name);
+		break;
 	case 207:
 		mapping = NoirMapping{"WHICHCD", WHICHCD, 0};
 		debug(7, "%s()", mapping.name);
 		break;
-	case 208:
+	case 208: // WhichInventory is implemented differently in v3, checking notebookstate
 		mapping = NoirMapping{"WHICHINVENTORY", WHICHINVENTORY, 0};
+		debug(7, "%s()", mapping.name);
+		break;
+	case 209:
+		mapping = NoirMapping{"ZZZZZZ", ZZZZZZ, 0};
 		debug(7, "%s()", mapping.name);
 		break;
 	case 210: // STUBBED
@@ -5143,6 +5183,8 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2], pp[3], pp[4], pp[5], pp[6], pp[7]);
 		break;
+	case 211: // 4 parameters
+		error("Unsupported libCode %d PLAYSEQUENCE", libCode);
 	case 212: // STUBBED
 		mapping = NoirMapping{"OP212", ZZZZZZ, 8};
 		pp -= mapping.numArgs - 1;
@@ -5158,22 +5200,36 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
+	case 216: // 2 parameters
+		mapping = NoirMapping{"OP2016_NOP", ZZZZZZ, 2};
+		debug(7, "%s()", mapping.name);
+		break;
 	case 217:
 		mapping = NoirMapping{"VOICEOVER", VOICEOVER, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
+	case 224: // 1 parameter, child function reads model data
+		error("Unsupported libCode %d", libCode);
 	case 111: // no hold frame
 	case 225: // hold frame
 		mapping = NoirMapping{"PLAYMOVIE", PLAYMOVIE, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
-	case 228: // STUBBED
+	case 226: // 1 parameter, waits until arg matches an spr related global
+		error("Unsupported libCode %d", libCode);
+	case 227: // 1 parameter, removes icon
+		error("Unsupported libCode %d", libCode);
+	case 228: // STUBBED, PCM related
 		mapping = NoirMapping{"OP228", ZZZZZZ, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
+	case 229: // 0 parameters
+		error("Unsupported libCode %d close_notebook", libCode);
+	case 230: // 1 parameter, sets multiobject anim and z
+		error("Unsupported libCode %d", libCode);
 	default:
 		error("Unmapped libCode %d", libCode);
 	}
