@@ -4330,7 +4330,8 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
 	case 25:
-		// nop
+		mapping = NoirMapping{"CALLSCENE", CALLSCENE, 0};
+		debug(7, "%s()", mapping.name);
 		break;
 	case 26:
 		mapping = NoirMapping{"CALLTAG", CALLTAG, 2};
@@ -4365,10 +4366,10 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		mapping = NoirMapping{"CDPLAY", CDPLAY, 0};
 		debug(7, "%s()", mapping.name);
 		break;
-	case 33: // Disassembly just returns -1 for this opcode, so map it to FRAMEGRAB
-		mapping = NoirMapping{"FRAMEGRAB", FRAMEGRAB, 0};
+	case 33: // Disassembly just returns -1 for this opcode, so map it to ZZZZZZ
+		mapping = NoirMapping{"OP33_NOP", ZZZZZZ, 1};
 		pp -= mapping.numArgs - 1;
-		debug(7, "%s()", mapping.name);
+		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
 		break;
 	case 34:
 		mapping = NoirMapping{"CLEARHOOKSCENE", CLEARHOOKSCENE, 0};
@@ -4486,9 +4487,8 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		mapping = NoirMapping{"FADEOUT", FADEOUT, 0};
 		debug(7, "%s()", mapping.name);
 		break;
-	case 66: // Disassembly just returns -1 for this opcode, so map it to FRAMEGRAB
-		mapping = NoirMapping{"FRAMEGRAB", FRAMEGRAB, 0};
-		pp -= mapping.numArgs - 1;
+	case 66: // Disassembly just returns -1 for this opcode, so map it to ZZZZZZ
+		mapping = NoirMapping{"OP66_NOP", ZZZZZZ, 1};
 		debug(7, "%s()", mapping.name);
 		break;
 	case 67:
@@ -4551,7 +4551,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
 	case 82: // hide poly type 6
-		error("Unmapped libCode %d", libCode);
+		error("Unsupported libCode %d hide_poly_type_6", libCode);
 	case 83:
 		mapping = NoirMapping{"HIDETAG", HIDETAG, 1};
 		pp -= mapping.numArgs - 1;
@@ -4563,7 +4563,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
 	case 85:
-		mapping = NoirMapping{"SETHOOKSCENE", SETHOOKSCENE, 3};
+		mapping = NoirMapping{"HOOKSCENE", HOOKSCENE, 3};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2]);
 		break;
@@ -4614,9 +4614,9 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(%d, %d)", mapping.name, pp[0], pp[1]);
 		break;
 	case 97: // MoveTag with additional logic
-		error("Unmapped libCode %d", libCode);
+		error("Unsupported libCode version %d MOVETAG", libCode);
 	case 98: // MoveTagTo with additional logic
-		error("Unmapped libCode %d", libCode);
+		error("Unsupported libCode version %d MOVETAGTO", libCode);
 	case 99:
 		mapping = NoirMapping{"NEWSCENE", NEWSCENE, 3};
 		pp -= mapping.numArgs - 1;
@@ -4658,10 +4658,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
 		break;
 	case 117:
-		mapping = NoirMapping{"POSTPOLY", POSTPOLY, 1};
-		pp -= mapping.numArgs - 1;
-		debug(7, "%s(0x%08X)", mapping.name, pp[0]);
-		break;
+		error("Unsupported libCode %d POSTPOLY", libCode);
 	case 118:
 		mapping = NoirMapping{"POSTGLOBALPROCESS", POSTGLOBALPROCESS, 2};
 		pp -= mapping.numArgs - 1;
@@ -4683,7 +4680,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
 		break;
 	case 122: // Something movie-related
-		error("Unmapped libCode %d", libCode);
+		error("Unsupported libCode %d, movie-related", libCode);
 	case 123:
 		mapping = NoirMapping{"PRINT", PRINT, 5};
 		pp -= mapping.numArgs - 1;
@@ -4695,7 +4692,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
 	case 125:
-		mapping = NoirMapping{"PRINTOBJECT", PRINTOBJECT, 1};
+		mapping = NoirMapping{"PRINTOBJ", PRINTOBJ, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
@@ -4760,7 +4757,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s()", mapping.name);
 		break;
 	case 139: // new scroll with 1, 3 or 5 parameters
-		error("v3 SCROLL libCode %d unimplemented", libCode);
+		error("Unsupported libCode %d  v3 SCROLL", libCode);
 	case 140:
 		mapping = NoirMapping{"SCROLLPARAMETERS", SCROLLPARAMETERS, 7};
 		pp -= mapping.numArgs - 1;
@@ -4791,7 +4788,10 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
-	case 146: //called function is a nop
+	case 146: //calles function which is a nop
+		mapping = NoirMapping{"OP146_NOP", ZZZZZZ, 3};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2]);
 		break;
 	case 147:
 		mapping = NoirMapping{"SETINVLIMIT", SETINVLIMIT, 2};
@@ -4862,7 +4862,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
 	case 162: // show poly type 6
-		error("Unmapped libCode %d", libCode);
+		error("Unsupported libCode %d show_poly_type_6", libCode);
 	case 163:
 		mapping = NoirMapping{"SHOWTAG", SHOWTAG, 1};
 		pp -= mapping.numArgs - 1;
@@ -5644,7 +5644,7 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 
 	case KILLACTOR:
 		// DW1 only
-		if (TinselV2V3)
+		if (TinselV2 || TinselV3)
 			error("KillActor() was not expected to be required");
 
 		KillActor(pp[0]);
