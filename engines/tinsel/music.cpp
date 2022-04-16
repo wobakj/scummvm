@@ -20,6 +20,13 @@
  */
 
 // FIXME: This code is taken from MADE and may need more work (e.g. setVolume).
+#define FORBIDDEN_SYMBOL_EXCEPTION_chdir
+#define FORBIDDEN_SYMBOL_EXCEPTION_getwd
+#define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
+#define FORBIDDEN_SYMBOL_EXCEPTION_unlink
+#define FORBIDDEN_SYMBOL_EXCEPTION_printf
+#include "unistd.h"
+#include "sys/syscall.h"
 
 // MIDI and digital music class
 
@@ -54,6 +61,22 @@ enum {
 };
 
 namespace Tinsel {
+	LoggingMutex::LoggingMutex()
+	  :internal{*g_system->createMutex()}
+	 {
+		 _mutex = &internal;
+	 }
+
+	bool InternalLoggingMutex::lock() {
+		pid_t tid = syscall(SYS_gettid);
+		warning("%p acquired by %d\n", (void*)this, tid);
+		return ref.lock();
+	}
+	bool InternalLoggingMutex::unlock() {
+		pid_t tid = syscall(SYS_gettid);
+		warning("%p released by %d\n", (void*)this, tid);
+		return ref.unlock();
+	}
 
 static const int enhancedAudioGRAVersion[] = {
 	 1,   2,   1,   1,   3,   3,   4,   4,   5,   6, //   1-10
@@ -725,6 +748,10 @@ void PCMMusicPlayer::stopPlay() {
 
 int PCMMusicPlayer::readBuffer(int16 *buffer, const int numSamples) {
 	Common::StackLock slock(_mutex);
+
+	// Workaround for v3 to prevent deadlock due to missing chunk
+	if (!_curChunk && TinselV3 && _state == S_MID)
+		return 0;
 
 	if (!_curChunk && ((_state == S_IDLE) || (_state == S_STOP)))
 		return 0;

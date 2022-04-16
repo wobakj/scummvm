@@ -24,6 +24,7 @@
 #ifndef TINSEL_MUSIC_H
 #define TINSEL_MUSIC_H
 
+
 #include "audio/midiplayer.h"
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
@@ -118,6 +119,29 @@ private:
 	void playSEQ(uint32 size, bool loop);
 };
 
+class InternalLoggingMutex : public Common::MutexInternal {
+public:
+	InternalLoggingMutex(Common::MutexInternal& mut)
+		:ref{mut}
+		{}
+	// virtual ~MutexInternal() {}
+	Common::MutexInternal& ref;
+	bool lock() override;
+	bool unlock() override;
+};
+
+class LoggingMutex : public Common::Mutex {
+	friend class StackLock;
+
+public:
+	LoggingMutex();
+	// ~LoggingMutex() {};
+	InternalLoggingMutex internal;
+	// bool lock() override;
+	// bool unlock() override;
+};
+
+
 class PCMMusicPlayer : public Audio::AudioStream {
 public:
 	PCMMusicPlayer();
@@ -165,7 +189,7 @@ protected:
 
 	Audio::SoundHandle _handle;
 	Audio::AudioStream *_curChunk;
-	Common::Mutex _mutex;
+	LoggingMutex _mutex;
 
 	bool _end;
 

@@ -67,14 +67,14 @@ public:
 class Mutex {
 	friend class StackLock;
 
-	MutexInternal *_mutex;
 
 public:
+	MutexInternal *_mutex;
 	Mutex();
-	~Mutex();
+	virtual ~Mutex();
 
-	bool lock();
-	bool unlock();
+	virtual bool lock();
+	virtual bool unlock();
 };
 
 /** @} */
