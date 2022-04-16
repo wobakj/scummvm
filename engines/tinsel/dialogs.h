@@ -85,6 +85,9 @@ enum InvCursorFN { IC_AREA,
 #define DEFINV2 0x10
 #define PERMACONV 0x20
 #define CONVENDITEM 0x40
+#define V3ATTR_X200 0x200 // noir specific
+#define V3ATTR_X400 0x400 // noir specific
+
 #define sliderRange (_sliderYmax - _sliderYmin)
 #define MAXSLIDES 4
 #define MAX_PERMICONS 10 // Max permanent conversation icons

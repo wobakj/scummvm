@@ -4626,7 +4626,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
-	case 84:
+	case 84: // v3 variant implemented
 		mapping = NoirMapping{"HOLD", HOLD, 1};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(%d)", mapping.name, pp[0]);
