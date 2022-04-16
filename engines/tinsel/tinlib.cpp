@@ -46,6 +46,7 @@
 #include "tinsel/move.h"
 #include "tinsel/multiobj.h"
 #include "tinsel/music.h"
+#include "tinsel/notebook.h"
 #include "tinsel/object.h"
 #include "tinsel/palette.h"
 #include "tinsel/pcode.h"
@@ -153,7 +154,8 @@ enum MASTER_LIB_CODES {
 	TRYPLAYSAMPLE, UNDIMMUSIC, UNHOOKSCENE, UNTAGACTOR, VIBRATE, WAITFRAME, WAITKEY,
 	WAITSCROLL, WAITTIME, WALK, WALKED, WALKEDPOLY, WALKEDTAG, WALKINGACTOR, WALKPOLY,
 	WALKTAG, WALKXPOS, WALKYPOS, WHICHCD, WHICHINVENTORY, ZZZZZZ, DEC3D, DECINVMAIN,
-	ADDNOTEBOOK, ADDINV3, ADDCONV, SET3DPALETTE, FADEMUSIC, VOICEOVER, SETVIEW, HELDOBJECTORTOPIC, HIGHEST_LIBCODE
+	ADDNOTEBOOK, ADDINV3, ADDCONV, SET3DPALETTE, FADEMUSIC, VOICEOVER, SETVIEW,
+	HELDOBJECTORTOPIC, BOOKADDHYPERLINK, HIGHEST_LIBCODE
 };
 
 static const MASTER_LIB_CODES DW1DEMO_CODES[] = {
@@ -4639,8 +4641,7 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(0x%08X, 0x%08X, 0x%08X)", mapping.name, pp[0], pp[1], pp[2]);
 		break;
 	case 86: // 2 parameters
-		warning("TODO: Implement notebook_add_hyperlink");
-		mapping = NoirMapping{"NODEBOOKADDHYPERLINK", ZZZZZZ, 2};
+		mapping = NoirMapping{"BOOKADDHYPERLINK", BOOKADDHYPERLINK, 2};
 		pp -= mapping.numArgs - 1;
 		debug(7, "%s(0x%08X, 0x%08X)", mapping.name, pp[0], pp[1]);
 		break;
@@ -5409,6 +5410,12 @@ int CallLibraryRoutine(CORO_PARAM, int operand, int32 *pp, const INT_CONTEXT *pi
 		// Common to DW1 / DW2 / Noir
 		startBackground(coroParam, pp[0]);
 		return -1;
+
+	case BOOKADDHYPERLINK:
+		// noir
+		pp -= 1; // 2 parameters
+		_vm->_notebook->AddHyperlink(pp[0], pp[1]);
+		return -2;
 
 	case BLOCKING:
 		// DW2 only

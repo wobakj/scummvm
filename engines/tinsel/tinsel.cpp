@@ -49,6 +49,7 @@
 #include "tinsel/dialogs.h"
 #include "tinsel/mareels.h"
 #include "tinsel/music.h"
+#include "tinsel/notebook.h"
 #include "tinsel/object.h"
 #include "tinsel/pid.h"
 #include "tinsel/polygons.h"
@@ -1014,6 +1015,7 @@ Common::Error TinselEngine::run() {
 	_handle = new Handle();
 	_scroll = new Scroll();
 	_dialogs = new Dialogs();
+	_notebook = new Notebook();
 
 	// Initialize backend
 	if (getGameID() == GID_NOIR) {

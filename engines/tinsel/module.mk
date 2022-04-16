@@ -27,6 +27,7 @@ MODULE_OBJS := \
 	movers.o \
 	multiobj.o \
 	music.o \
+	notebook.o \
 	object.o \
 	palette.o \
 	pcode.o \
