@@ -726,6 +726,10 @@ void PCMMusicPlayer::stopPlay() {
 int PCMMusicPlayer::readBuffer(int16 *buffer, const int numSamples) {
 	Common::StackLock slock(_mutex);
 
+	// Workaround for v3 to prevent deadlock due to missing chunk
+	if (!_curChunk && TinselV3 && _state == S_MID)
+		return 0;
+
 	if (!_curChunk && ((_state == S_IDLE) || (_state == S_STOP)))
 		return 0;
 
