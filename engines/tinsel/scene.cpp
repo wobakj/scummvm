@@ -201,7 +201,7 @@ static void SceneTinselProcess(CORO_PARAM, const void *param) {
 
 	_ctx->pic = InitInterpretContext(GS_SCENE,
 		FROM_32(_ctx->pInit->hTinselCode),
-		TinselV2 ? _ctx->pInit->event : NOEVENT,
+		TinselAboveV1 ? _ctx->pInit->event : NOEVENT,
 		NOPOLY,			// No polygon
 		0,				// No actor
 		NULL,			// No object
@@ -252,7 +252,7 @@ static void LoadScene(SCNHANDLE scene, int entry) {
 	_vm->_handle->LockMem(g_SceneHandle); // Make sure scene is loaded
 	_vm->_handle->LockScene(g_SceneHandle); // Prevent current scene from being discarded
 
-	if (TinselV2) {
+	if (TinselAboveV1) {
 		// CdPlay() stuff
 		byte *cptr = FindChunk(scene, CHUNK_CDPLAY_FILENUM);
 		assert(cptr);
@@ -267,7 +267,7 @@ static void LoadScene(SCNHANDLE scene, int entry) {
 	ss = GetSceneStruc(FindChunk(scene, CHUNK_SCENE));
 	assert(ss != NULL);
 
-	if (TinselV2) {
+	if (TinselAboveV1) {
 		// Music stuff
 		char *cptr = (char *)FindChunk(scene, CHUNK_MUSIC_FILENAME);
 		assert(cptr);
@@ -283,7 +283,7 @@ static void LoadScene(SCNHANDLE scene, int entry) {
 		// Initialize the actors for this scene
 		_vm->_actor->StartTaggedActors(FROM_32(ss->hTaggedActor), FROM_32(ss->numTaggedActor), false);
 
-		if (TinselV2)
+		if (TinselAboveV1)
 			// Returning from cutscene
 			SendSceneTinselProcess(RESTORE);
 
@@ -310,7 +310,7 @@ static void LoadScene(SCNHANDLE scene, int entry) {
 			}
 
 			// Move to next entrance
-			if (TinselV2)
+			if (TinselAboveV1)
 				++es;
 			else
 				es = (const ENTRANCE_STRUC *)((const byte *)es + 8);
@@ -356,7 +356,7 @@ void EndScene() {
 	FreeAllTokens();	// No-one has tokens
 	FreeMostInterpretContexts();	// Only master script still interpreting
 
-	if (TinselV2) {
+	if (TinselAboveV1) {
 		SetSysVar(ISV_DIVERT_ACTOR, 0);
 		SetSysVar(ISV_GHOST_ACTOR, 0);
 		SetSysVar(SV_MinimumXoffset, 0);
@@ -389,7 +389,7 @@ void PrimeScene() {
 	SetSysVar(SYS_SceneFxDimFactor, SysVar(SYS_DefaultFxDimFactor));
 
 	_vm->_cursor->RestartCursor(); // Restart the cursor
-	if (!TinselV2)
+	if (!TinselAboveV1)
 		EnableTags();		// Next scene with tags enabled
 
 	CoroScheduler.createProcess(PID_SCROLL, ScrollProcess, NULL, 0);
@@ -414,7 +414,7 @@ void PrimeScene() {
 void StartNewScene(SCNHANDLE scene, int entry) {
 	EndScene();	// Wrap up the last scene.
 
-	if (TinselV2) {
+	if (TinselAboveV1) {
 		TouchMoverReels();
 
 		_vm->_handle->LockMem(scene); // Do CD change before PrimeScene

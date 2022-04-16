@@ -432,7 +432,7 @@ void Cursor::InitCurObj() {
 		PokeInPalette(pmi);
 	}
 
-	if (!TinselV2)
+	if (!TinselAboveV1)
 		_auxCursor = nullptr; // No auxillary cursor
 
 	_mainCursor = MultiInitObject(pmi);
@@ -441,7 +441,7 @@ void Cursor::InitCurObj() {
 	InitStepAnimScript(&_mainCursorAnim, _mainCursor, FROM_32(pfr->script), ONE_SECOND / FROM_32(pFilm->frate));
 }
 
-/**
+/**return
  * Initialize the cursor position.
  */
 void Cursor::InitCurPos() {
@@ -475,7 +475,7 @@ void Cursor::DwInitCursor(SCNHANDLE bfilm) {
  * DropCursor is called when a scene is closing down.
  */
 void Cursor::DropCursor() {
-	if (TinselV2) {
+	if (TinselAboveV1) {
 		if (_auxCursor)
 			MultiDeleteObject(_vm->_bg->GetPlayfieldList(FIELD_STATUS), _auxCursor);
 		if (_mainCursor)

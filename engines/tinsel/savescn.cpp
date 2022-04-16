@@ -124,7 +124,7 @@ void DoSaveScene(SAVED_DATA *sd) {
 	sd->SavedNoBlocking = GetNoBlocking();
 	_vm->_scroll->GetNoScrollData(&sd->SavedNoScrollData);
 
-	if (TinselV2) {
+	if (TinselAboveV1) {
 		// Tinsel 2 specific data save
 		_vm->_actor->SaveActorZ(sd->savedActorZ);
 		_vm->_actor->SaveZpositions(sd->zPositions);
@@ -181,7 +181,7 @@ void FreeSaveScenes() {
  * Also 'stand' all the moving actors at their saved positions.
  */
 void sortActors(SAVED_DATA *sd) {
-	assert(!TinselV2);
+	assert(!TinselAboveV1);
 	for (int i = 0; i < sd->NumSavedActors; i++) {
 		_vm->_actor->ActorsLife(sd->SavedActorInfo[i].actorID, sd->SavedActorInfo[i].bAlive);
 
@@ -252,7 +252,7 @@ static void SortMAProcess(CORO_PARAM, const void *) {
 
 void ResumeInterprets() {
 	// Master script only affected on restore game, not restore scene
-	if (!TinselV2 && (g_rsd == &g_sgData)) {
+	if (!TinselAboveV1 && (g_rsd == &g_sgData)) {
 		CoroScheduler.killMatchingProcess(PID_MASTER_SCR, -1);
 		FreeMasterInterpretContext();
 	}
@@ -286,7 +286,7 @@ void ResumeInterprets() {
 			break;
 
 		case GS_ACTOR:
-			if (TinselV2)
+			if (TinselAboveV1)
 				RestoreProcess(&g_rsd->SavedICInfo[i]);
 			else
 				RestoreActorProcess(g_rsd->SavedICInfo[i].idActor, &g_rsd->SavedICInfo[i], g_rsd == &g_sgData);
@@ -318,7 +318,7 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
 		_vm->_sound->stopAllSamples();
 		ClearScreen();
 
-		if (TinselV2) {
+		if (TinselAboveV1) {
 
 			// Master script only affected on restore game, not restore scene
 			if (sd == &g_sgData) {
@@ -350,7 +350,7 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
 		g_bNoFade = false;
 		_vm->_bg->StartupBackground(Common::nullContext, sd->SavedBgroundHandle);
 
-		if (TinselV2) {
+		if (TinselAboveV1) {
 			Offset(EX_USEXY, sd->SavedLoffset, sd->SavedToffset);
 		} else {
 			_vm->_scroll->KillScroll();
@@ -360,7 +360,7 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
 
 		_vm->_scroll->RestoreNoScrollData(&sd->SavedNoScrollData);
 
-		if (TinselV2) {
+		if (TinselAboveV1) {
 			// create process to sort out the moving actors
 			CoroScheduler.createProcess(PID_MOVER, SortMAProcess, NULL, 0);
 			g_bNotDoneYet = true;
@@ -380,7 +380,7 @@ static int DoRestoreSceneFrame(SAVED_DATA *sd, int n) {
 		break;
 
 	case 1:
-		if (TinselV2) {
+		if (TinselAboveV1) {
 			if (g_bNotDoneYet)
 				return n;
 

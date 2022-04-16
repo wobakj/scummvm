@@ -101,9 +101,10 @@ typedef bool (*KEYFPTR)(const Common::KeyState &);
 #define TinselVersion (_vm->getVersion())
 #define TinselV0 (TinselVersion == TINSEL_V0)
 #define TinselV1 (TinselVersion == TINSEL_V1)
-#define TinselV2 (TinselVersion == TINSEL_V2 || TinselVersion == TINSEL_V3)
+#define TinselAboveV1 (TinselVersion == TINSEL_V2 || TinselVersion == TINSEL_V3)
+#define TinselV2 (TinselVersion == TINSEL_V2)
 #define TinselV3 (TinselVersion == TINSEL_V3)
-#define TinselV2Demo (TinselVersion == TINSEL_V2 && _vm->getIsADGFDemo())
+#define TinselAboveV1Demo (TinselVersion == TINSEL_V2 && _vm->getIsADGFDemo())
 #define TinselV1PSX (TinselVersion == TINSEL_V1 && _vm->getPlatform() == Common::kPlatformPSX)
 #define TinselV1Mac (TinselVersion == TINSEL_V1 && _vm->getPlatform() == Common::kPlatformMacintosh)
 #define TinselV1Saturn (TinselVersion == TINSEL_V1 && _vm->getPlatform() == Common::kPlatformSaturn)
@@ -213,7 +214,7 @@ public:
 		pt.x = CLIP<int16>(pt.x, 0, SCREEN_WIDTH - 1);
 		pt.y = CLIP<int16>(pt.y, 0, SCREEN_HEIGHT - 1);
 
-		int yOffset = TinselV2 ? (g_system->getHeight() - _screenSurface.h) / 2 : 0;
+		int yOffset = TinselAboveV1 ? (g_system->getHeight() - _screenSurface.h) / 2 : 0;
 		g_system->warpMouse(pt.x, pt.y + yOffset);
 		_mousePos = pt;
 	}
