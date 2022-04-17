@@ -5398,6 +5398,13 @@ void Dialogs::Redraw() {
 	}
 }
 
+// noir
+bool Dialogs::IsConvAndNotMove() {
+	// TODO: Ensure that the used global is correct
+	// If this is the right mapping, the variable is reversed in noir
+	return IsConvWindow() && !_bMoveOnUnHide;
+}
+
 /**************************************************************************/
 /************************ The inventory process ***************************/
 /**************************************************************************/
