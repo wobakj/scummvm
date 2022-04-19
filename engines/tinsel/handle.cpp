@@ -21,6 +21,7 @@
  */
 
 #define BODGE
+#define FORBIDDEN_SYMBOL_EXCEPTION_strncmp
 
 #include "common/file.h"
 #include "common/memstream.h"
@@ -39,7 +40,7 @@
 #include "tinsel/scene.h"
 #include "tinsel/noir/lzss.h"
 
-namespace Tinsel {
+	namespace Tinsel {
 
 //----------------- LOCAL DEFINES --------------------
 
@@ -606,6 +607,21 @@ int Handle::CdNumber(SCNHANDLE offset) {
 		return 1;
 
 	return GetCD(pH->flags2 & fAllCds);
+}
+
+ /**
+  * Searches for a resource by name and returns the handle to it.
+  *
+  * @param fileName Name of the resource to search for
+  */
+SCNHANDLE Handle::FindLanguageSceneHandle(const char *fileName) {
+	for (uint i = 0; i < _numHandles; ++i) {
+		int relation = strncmp(fileName, _handleTable[i].szName, 12);
+		if (relation == 0) {
+			return i << SCNHANDLE_SHIFT;
+		}
+	}
+	error("Can't find handle for language scene\n");
 }
 
 } // End of namespace Tinsel
