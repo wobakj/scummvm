@@ -52,7 +52,13 @@ enum {
 
 	// Discworld 2 constants
 	DW2_INV_OPEN = 5,
-	INV_DEFAULT = 6
+	INV_DEFAULT = 6,
+
+	// Noir constants
+	INV_4	= 4,
+	INV_7NOINV	= 7,
+	INV_8NOINV	= 8,
+	INV_NOTEBOOK= 9,
 };
 
 enum {
@@ -301,6 +307,9 @@ public:
 	               int StartWidth, int StartHeight, int MaxWidth, int MaxHeight);
 	void idec_inv2(SCNHANDLE text, int MaxContents, int MinWidth, int MinHeight,
 	               int StartWidth, int StartHeight, int MaxWidth, int MaxHeight);
+
+	// noir
+	void idec_invMain(SCNHANDLE text, int MaxContents);
 
 	bool InventoryActive();
 

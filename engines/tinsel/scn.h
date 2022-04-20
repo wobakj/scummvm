@@ -74,6 +74,7 @@ namespace Tinsel {
 
 // Used in Discworld Noir
 #define CHUNK_GAME	        	0x33340031L
+#define CHUNK_OBJECTS           0x33340013L
 
 // This is a base, subsequent numbers may also get used
 #define CHUNK_GRAB_NAME			0x33340100L

@@ -38,7 +38,6 @@ namespace Tinsel {
 #define fCd6	0x00000020L
 #define fCd7	0x00000040L
 #define fCd8	0x00000080L
-
 #define fAllCds	(fCd1|fCd2|fCd3|fCd4|fCd5|fCd6|fCd7|fCd8)
 
 void DoCdChange();
