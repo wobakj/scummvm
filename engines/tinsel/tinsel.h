@@ -67,6 +67,7 @@ class Scroll;
 class Dialogs;
 class Spriter;
 class Notebook;
+class SystemReel;
 
 typedef Common::List<Common::Rect> RectList;
 
@@ -184,6 +185,7 @@ public:
 	Dialogs *_dialogs;
 	Spriter *_spriter;
 	Notebook *_notebook;
+	SystemReel *_systemReel;
 
 	KEYFPTR _keyHandler;
 

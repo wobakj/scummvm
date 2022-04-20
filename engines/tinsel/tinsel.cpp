@@ -58,6 +58,7 @@
 #include "tinsel/sound.h"
 #include "tinsel/spriter.h"
 #include "tinsel/strres.h"
+#include "tinsel/sysreel.h"
 #include "tinsel/sysvar.h"
 #include "tinsel/timers.h"
 #include "tinsel/tinsel.h"
@@ -1026,6 +1027,7 @@ Common::Error TinselEngine::run() {
 	_scroll = new Scroll();
 	_dialogs = new Dialogs();
 	_notebook = new Notebook();
+	_systemReel = new SystemReel();
 
 	// Initialize backend
 	if (getGameID() == GID_NOIR) {

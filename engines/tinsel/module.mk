@@ -43,6 +43,7 @@ MODULE_OBJS := \
 	sound.o \
 	spriter.o \
 	strres.o \
+	sysreel.o \
 	sysvar.o \
 	text.o \
 	timers.o \
