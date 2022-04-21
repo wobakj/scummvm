@@ -92,6 +92,7 @@ typedef enum {	SV_DEFAULT_INV,
 		SV_SPRITER_SCALE = 0x37, // Noir, scale used for 3D rendering
 		SV_SPRITER_OVERLAY = 0x38, // Noir, if additional model is loaded
 
+
 		SV_TOPVALID } SYSVARS;
 
 #define ISV_DIVERT_ACTOR (TinselV3 ? ISV_DIVERT_ACTOR_T3 : ISV_DIVERT_ACTOR_T2)
