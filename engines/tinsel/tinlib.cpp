@@ -4670,7 +4670,11 @@ NoirMapping translateNoirLibCode(int libCode, int32 *pp) {
 		debug(7, "%s(%d)", mapping.name, pp[0]);
 		break;
 	case 90: // 2 parameters, play anim based on item
-		error("Unsupported libCode %d", libCode);
+		mapping = NoirMapping{"OP90", ZZZZZZ, 2};
+		pp -= mapping.numArgs - 1;
+		debug(7, "%s(%d, %d)", mapping.name, pp[0], pp[1]);
+		break;
+		// error("Unsupported libCode %d", libCode);
 	case 91:
 		mapping = NoirMapping{"INWHICHINV", INWHICHINV, 0};
 		debug(7, "%s()", mapping.name);
